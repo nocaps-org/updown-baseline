@@ -1,5 +1,5 @@
-Up-Down Captioner Baseline for `nocaps`
-======================================
+UpDown Captioner Baseline for `nocaps`
+=====================================
 
 Baseline model for [`nocaps`][1] dataset.
 

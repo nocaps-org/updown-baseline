@@ -4,10 +4,10 @@ import torch
 from torch import nn
 from torch.nn import functional as F
 from allennlp.data import Vocabulary
-from allennlp.nn.beam_search import BeamSearch
 from allennlp.nn.util import add_sentence_boundary_token_ids, sequence_cross_entropy_with_logits
 
 from updown.modules.updown_cell import UpDownCell
+from updown.utils.beam_search import BeamSearch
 
 
 class UpDownCaptioner(nn.Module):
@@ -114,7 +114,7 @@ class UpDownCaptioner(nn.Module):
             # shape (all_top_k_predictions): (batch_size, beam_size, num_decoding_steps)
             # shape (log_probabilities): (batch_size, beam_size)
             all_top_k_predictions, log_probabilities = self._beam_search.search(
-                    start_predictions, states, self._decode_step)
+                    image_features, start_predictions, states, self._decode_step)
 
             # Pick the first beam as predictions.
             output_dict = {
@@ -126,9 +126,9 @@ class UpDownCaptioner(nn.Module):
     def _decode_step(
         self,
         image_features: torch.FloatTensor,
-        previous_predictions: torch.Tensor,
-        states: Optional[List[Tuple[torch.Tensor, torch.Tensor]]] = None,
-    ) -> Tuple[torch.Tensor, List[Tuple[torch.Tensor, torch.Tensor]]]:
+        previous_predictions: torch.LongTensor,
+        states: Optional[Dict[str, torch.FloatTensor]] = None,
+    ) -> Tuple[torch.FloatTensor, Dict[str, torch.FloatTensor]]:
 
         # shape: (batch_size, )
         current_input = previous_predictions

@@ -1,6 +1,8 @@
-from typing import Dict, Union
+import json
+from typing import Any, Dict, List, Tuple, Union
 
 import h5py
+from nltk.tokenize import word_tokenize
 import numpy as np
 from tqdm import tqdm
 
@@ -55,7 +57,7 @@ class ImageFeaturesReader(object):
             features_h5.close()
 
     def __len__(self):
-        return len(self._image_ids)
+        return len(self._map)
 
     def __getitem__(self, image_id: int):
         if self._in_memory:
@@ -67,3 +69,25 @@ class ImageFeaturesReader(object):
                 image_id_features = features_h5["features"][index]
             # Shape typically (36, 2048), if extracted using Faster-RCNN with ResNet-101 backbone.
             return image_id_features
+
+
+class CocoCaptionsReader(object):
+    def __init__(self, captions_jsonpath: str):
+        self._captions_jsonpath = captions_jsonpath
+
+        captions_json: Dict[str, Any] = json.load(open(self._captions_jsonpath))
+
+        # List of (image id, caption) tuples.
+        self._captions: List[Tuple[int, List[str]]] = []
+
+        for caption_item in captions_json["annotations"]:
+
+            caption: str = caption_item["caption"].lower()
+            caption_tokens: List[str] = word_tokenize(caption)
+            self._captions.append((caption_item["image_id"], caption_tokens))
+
+    def __len__(self):
+        return len(self._captions)
+
+    def __getitem__(self, index) -> Tuple[int, List[str]]:
+        return self._captions[index]

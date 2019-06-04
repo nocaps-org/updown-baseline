@@ -44,7 +44,6 @@ class UpDownCaptioner(nn.Module):
         )
 
         self._output_layer = nn.Linear(hidden_size, vocab_size)
-
         self._log_softmax = nn.LogSoftmax(dim=1)
 
         # We use beam search to find the most likely caption during inference.

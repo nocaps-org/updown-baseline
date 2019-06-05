@@ -1,7 +1,7 @@
 DATA:
   VOCABULARY: data/vocabulary
   TRAIN_FEATURES: data/coco_train2017_resnet101_faster_rcnn_genome_36.h5
-  VAL_FEATURES: data/coco_val2017_resnet101_faster_rcnn_genome_36.h5
+  VAL_FEATURES: data/nocaps_val_resnet101_faster_rcnn_genome_36.h5
 
   TRAIN_CAPTIONS: data/coco/annotations/captions_train2017.json
   VAL_CAPTIONS: data/coco/annotations/captions_val2017.json

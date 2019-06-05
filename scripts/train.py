@@ -17,6 +17,7 @@ from updown.data.datasets import TrainingDataset, ValidationDataset
 from updown.models import UpDownCaptioner
 from updown.utils.checkpointing import CheckpointManager
 from updown.utils.common import cycle
+from updown.utils.evalai import NocapsEvaluator
 
 
 parser = argparse.ArgumentParser("Train an UpDown Captioner on COCO train2017 split.")
@@ -100,8 +101,8 @@ if __name__ == "__main__":
 
     train_dataset = TrainingDataset(
         vocabulary,
-        image_features_h5path=_C.DATA.VAL_FEATURES,
-        captions_jsonpath=_C.DATA.VAL_CAPTIONS,
+        image_features_h5path=_C.DATA.TRAIN_FEATURES,
+        captions_jsonpath=_C.DATA.TRAIN_CAPTIONS,
         max_caption_length=_C.DATA.MAX_CAPTION_LENGTH,
         in_memory=_A.in_memory,
     )
@@ -154,6 +155,7 @@ if __name__ == "__main__":
     checkpoint_manager = CheckpointManager(model, optimizer, _A.serialization_dir, mode="max")
 
     # Evaluator submits predictions to EvalAI and retrieves results.
+    evaluator = NocapsEvaluator(split="val")
 
     # Load checkpoint to resume training from there if specified.
     # Infer iteration number through file name (it's hacky but very simple), so don't rename
@@ -211,24 +213,35 @@ if __name__ == "__main__":
                 for i, image_id in enumerate(batch["image_id"]):
                     instance_predictions = batch_predictions[i, :]
 
-                    # De-tokenize cpation tokens and trim until first "@end@".
+                    # De-tokenize caption tokens and trim until first "@end@".
                     caption = [
                         vocabulary.get_token_from_index(p.item()) for p in instance_predictions
                     ]
                     eos_occurences = [j for j in range(len(caption)) if caption[j] == "@end@"]
                     caption = caption[: eos_occurences[0]] if len(eos_occurences) > 0 else caption
 
-                    predictions.append({
-                        "image_id": image_id.item(),
-                        "caption": " ".join(caption),
-                    })
-
-            evaluator.evaluate(predictions)
-
-            for i in range(5):
-                print(predictions[i])
+                    predictions.append({"image_id": image_id.item(), "caption": " ".join(caption)})
 
             model.train()
 
-        # # Serialize current (and best) checkpoint.
-        # checkpoint_manager.step(evaluation_metrics["CIDEr"], iteration)
+            # Print first 25 captions with their Image ID.
+            for k in range(25):
+                print(predictions[k]["image_id"], predictions[k]["caption"])
+
+            # Get evaluation metrics for nocaps val phase from EvalAI.
+            # keys: {"B1", "B2", "B3", "B4", "METEOR", "ROUGE-L", "CIDEr", "SPICE"}
+            # In each of these, keys:  {"in-domain", "near-domain", "out-domain", "entire"}
+            evaluation_metrics = evaluator.evaluate(predictions)
+
+            # Print and log all evaluation metrics to tensorboard.
+            print("Evaluation metrics after iteration {iteration}:")
+            for metric_name in evaluation_metrics:
+                tensorboard_writer.add_scalars(
+                    f"val/{metric_name}", evaluation_metrics[metric_name], iteration
+                )
+                print(f"\t{metric_name}:")
+                for domain in evaluation_metrics[metric_name]:
+                    print(f"\t\t{domain}:", evaluation_metrics[metric_name][domain])
+
+            # Serialize checkpoint and update best checkpoint by overall CIDEr.
+            checkpoint_manager.step(evaluation_metrics["CIDEr"]["entire"], iteration)

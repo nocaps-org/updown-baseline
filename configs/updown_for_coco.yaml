@@ -1,0 +1,26 @@
+DATA:
+  VOCABULARY: data/vocabulary
+  TRAIN_FEATURES: data/coco_train2017_resnet101_faster_rcnn_genome_36.h5
+  VAL_FEATURES: data/coco_val2017_resnet101_faster_rcnn_genome_36.h5
+
+  TRAIN_CAPTIONS: data/coco/annotations/captions_train2017.json
+  VAL_CAPTIONS: data/coco/annotations/captions_val2017.json
+
+  MAX_CAPTION_LENGTH: 20
+
+MODEL:
+  IMAGE_FEATURE_SIZE: 2048
+  EMBEDDING_SIZE: 1000
+  HIDDEN_SIZE: 1200
+  ATTENTION_PROJECTION_SIZE: 768
+  BEAM_SIZE: 5
+
+RANDOM_SEED: 0
+
+OPTIM:
+  BATCH_SIZE: 150
+  LR: 0.015
+  MOMENTUM: 0.9
+  WEIGHT_DECAY: 0.001
+  CLIP_GRADIENTS: 12.5
+  NUM_ITERATIONS: 70000

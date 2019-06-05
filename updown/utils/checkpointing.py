@@ -49,12 +49,17 @@ class CheckpointManager(object):
 
     def __init__(
         self,
-        models: Dict[str, nn.Module],
+        models: Union[nn.Module, Dict[str, nn.Module]],
         optimizer: Type[optim.Optimizer],
         serialization_dir: str,
         mode: str = "max",
         filename_prefix: str = "checkpoint",
     ):
+
+        # Convert single model to a dict.
+        if isinstance(models, nn.Module):
+            models = {"model": models}
+
         for key in models:
             if not isinstance(models[key], nn.Module):
                 raise TypeError("{} is not a Module".format(type(models).__name__))

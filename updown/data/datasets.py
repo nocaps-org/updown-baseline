@@ -4,10 +4,10 @@ import torch
 from torch.utils.data import Dataset
 from allennlp.data import Vocabulary
 
-from updown.readers import CocoCaptionsReader, ImageFeaturesReader
+from updown.data.readers import CocoCaptionsReader, ImageFeaturesReader
 
 
-class CocoTrainDataset(Dataset):
+class TrainingDataset(Dataset):
     def __init__(
         self,
         vocabulary: Vocabulary,
@@ -18,8 +18,8 @@ class CocoTrainDataset(Dataset):
     ):
 
         self._vocabulary = vocabulary
-        self._captions_reader = CocoCaptionsReader(captions_jsonpath)
         self._image_features_reader = ImageFeaturesReader(image_features_h5path, in_memory)
+        self._captions_reader = CocoCaptionsReader(captions_jsonpath)
 
         self._max_caption_length = max_caption_length
 
@@ -44,13 +44,13 @@ class CocoTrainDataset(Dataset):
 
         item: Dict[str, Any] = {
             "image_id": torch.tensor(image_id).long(),
-            "image_features": torch.tensor(image_features),
+            "image_features": torch.tensor(image_features).float(),
             "caption_tokens": torch.tensor(caption_tokens).long(),
         }
         return item
 
 
-class InferenceDataset(Dataset):
+class ValidationDataset(Dataset):
     def __init__(self, image_features_h5path: str, in_memory: bool = True):
 
         self._image_features_reader = ImageFeaturesReader(image_features_h5path, in_memory)
@@ -61,11 +61,14 @@ class InferenceDataset(Dataset):
 
     def __getitem__(self, index: int) -> Dict[str, Any]:
 
-        image_id, = self._image_ids[index]
+        image_id = self._image_ids[index]
         image_features = self._image_features_reader[image_id]
 
         item: Dict[str, Any] = {
             "image_id": torch.tensor(image_id).long(),
-            "image_features": torch.tensor(image_features),
+            "image_features": torch.tensor(image_features).float(),
         }
         return item
+
+
+InferenceDataset = ValidationDataset

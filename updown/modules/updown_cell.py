@@ -43,7 +43,7 @@ class UpDownCell(nn.Module):
         # shape: (batch_size, image_feature_size)
         average_image_features = torch.mean(image_features, dim=1)
 
-        # Initialize (h1, c1), (h2, c2) is not passed:
+        # Initialize (h1, c1), (h2, c2) if not passed.
         if states is None:
             state = image_features.new_zeros((batch_size, self.hidden_size))
             states = {

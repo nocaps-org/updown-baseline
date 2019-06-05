@@ -42,7 +42,7 @@ class ImageFeaturesReader(object):
         self._map: Dict[int, Union[int, np.ndarray]] = {}
 
         if self._in_memory:
-            print(f"Loading image features from {self.features_h5path}")
+            print(f"Loading image features from {self.features_h5path}...")
             features_h5 = h5py.File(self.features_h5path, "r")
             for index in tqdm(range(features_h5["image_id"].shape[0])):
                 self._map[features_h5["image_id"][index]] = features_h5["features"][index]
@@ -76,13 +76,18 @@ class CocoCaptionsReader(object):
         self._captions_jsonpath = captions_jsonpath
 
         captions_json: Dict[str, Any] = json.load(open(self._captions_jsonpath))
+        PUNCTUATIONS = ["'", "`", "(", ")", "{", "}", "?", "!", ":", "-", "...", ";", "."]
 
         # List of (image id, caption) tuples.
         self._captions: List[Tuple[int, List[str]]] = []
 
-        for caption_item in captions_json["annotations"]:
+        print(f"Tokenizing captions from {captions_jsonpath}...")
+        for caption_item in tqdm(captions_json["annotations"]):
 
             caption: str = caption_item["caption"].lower()
+            for punctuation in PUNCTUATIONS:
+                caption = caption.replace(punctuation, "")
+
             caption_tokens: List[str] = word_tokenize(caption)
             self._captions.append((caption_item["image_id"], caption_tokens))
 

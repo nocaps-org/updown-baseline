@@ -1,13 +1,14 @@
+import functools
 from typing import Dict, List, Tuple, Optional
 
 import torch
 from torch import nn
 from torch.nn import functional as F
 from allennlp.data import Vocabulary
+from allennlp.nn.beam_search import BeamSearch
 from allennlp.nn.util import add_sentence_boundary_token_ids, sequence_cross_entropy_with_logits
 
 from updown.modules.updown_cell import UpDownCell
-from updown.utils.beam_search import BeamSearch
 
 
 class UpDownCaptioner(nn.Module):
@@ -47,8 +48,9 @@ class UpDownCaptioner(nn.Module):
         self._log_softmax = nn.LogSoftmax(dim=1)
 
         # We use beam search to find the most likely caption during inference.
+        self._beam_size = beam_size
         self._beam_search = BeamSearch(
-            self._end_index, max_steps=max_caption_length, beam_size=beam_size
+            self._eos_index, max_steps=max_caption_length, beam_size=beam_size
         )
 
     def forward(
@@ -58,12 +60,15 @@ class UpDownCaptioner(nn.Module):
         # Initialize states at zero-th timestep.
         states = None
 
-        # Add "@start@" and "@end@" tokens to caption sequences.
-        caption_tokens, _ = add_sentence_boundary_token_ids(
-            caption_tokens, (caption_tokens != self._pad_index), self._start_index, self._end_index
-        )
-
         if self.training and caption_tokens is not None:
+            # Add "@start@" and "@end@" tokens to caption sequences.
+            caption_tokens, _ = add_sentence_boundary_token_ids(
+                caption_tokens,
+                (caption_tokens != self._pad_index),
+                self._sos_index,
+                self._eos_index,
+            )
+
             batch_size, max_caption_length = caption_tokens.size()
 
             # shape: (batch_size, max_caption_length)
@@ -88,10 +93,9 @@ class UpDownCaptioner(nn.Module):
                 # shape: (batch_size, vocab_size)
                 token_probabilities = F.softmax(output_logits, dim=-1)
 
-                # Perform categorical sampling, don't sample @@PADDING@@, @@UNKNOWN@@, @start@.
+                # Perform categorical sampling, don't sample @@PADDING@@, @start@.
                 token_probabilities[:, self._pad_index] = 0
-                token_probabilities[:, self._unk_index] = 0
-                token_probabilities[:, self._start_index] = 0
+                token_probabilities[:, self._sos_index] = 0
 
                 # shape: (batch_size, )
                 predicted_tokens = torch.multinomial(token_probabilities, 1)
@@ -109,17 +113,23 @@ class UpDownCaptioner(nn.Module):
             num_decoding_steps = self._max_caption_length
 
             batch_size = image_features.size(0)
-            start_predictions = image_features.new_full((batch_size, ), fill_value=self._start_index)
+            start_predictions = image_features.new_full(
+                (batch_size,), fill_value=self._sos_index
+            ).long()
+
+            # Add image features as a default argument to match callable signature acceptable by
+            # beam search class (previous predictions and states only).
+            beam_decode_step = functools.partial(self._decode_step, image_features)
 
             # shape (all_top_k_predictions): (batch_size, beam_size, num_decoding_steps)
             # shape (log_probabilities): (batch_size, beam_size)
             all_top_k_predictions, log_probabilities = self._beam_search.search(
-                    image_features, start_predictions, states, self._decode_step)
+                start_predictions, states, beam_decode_step
+            )
 
             # Pick the first beam as predictions.
-            output_dict = {
-                "predictions": all_top_k_predictions[:, 0, :],
-            }
+            best_predictions = all_top_k_predictions[:, 0, :]
+            output_dict = {"predictions": best_predictions}
 
         return output_dict
 
@@ -129,6 +139,18 @@ class UpDownCaptioner(nn.Module):
         previous_predictions: torch.LongTensor,
         states: Optional[Dict[str, torch.FloatTensor]] = None,
     ) -> Tuple[torch.FloatTensor, Dict[str, torch.FloatTensor]]:
+
+        # Expand and repeat image features while doing beam search (during inference).
+        if not self.training and image_features.size(0) != previous_predictions.size(0):
+
+            # Add beam dimension and repeat image features.
+            image_features = image_features.unsqueeze(1).repeat(1, self._beam_size, 1, 1)
+            batch_size, beam_size, num_boxes, image_feature_size = image_features.size()
+
+            # shape: (batch_size * beam_size, num_boxes, image_feature_size)
+            image_features = image_features.view(
+                batch_size * beam_size, num_boxes, image_feature_size
+            )
 
         # shape: (batch_size, )
         current_input = previous_predictions

@@ -37,12 +37,33 @@ class Config(object):
     def __init__(self, config_yaml: str, config_override: List[Any] = []):
 
         self._C = CN()
+        self._C.RANDOM_SEED = 0
+
+        self._C.DATA = CN()
+        self._C.DATA.VOCABULARY = "data/vocabulary"
+
+        self._C.DATA.TRAIN_FEATURES = "data/coco_train2017_resnet101_faster_rcnn_genome_36.h5"
+        self._C.DATA.VAL_FEATURES = "data/coco_val2017_resnet101_faster_rcnn_genome_36.h5"
+
+        self._C.DATA.TRAIN_CAPTIONS = "data/coco/annotations/captions_train2017.json"
+        self._C.DATA.VAL_CAPTIONS = "data/coco/annotations/captions_val2017.json"
+
+        self._C.DATA.MAX_CAPTION_LENGTH = 20
 
         self._C.MODEL = CN()
-        self._C.MODEL.INPUT_SIZE = 1000
-        self._C.MODEL.HIDDEN_SIZE = 1200
         self._C.MODEL.IMAGE_FEATURE_SIZE = 2048
+        self._C.MODEL.EMBEDDING_SIZE = 1000
+        self._C.MODEL.HIDDEN_SIZE = 1200
         self._C.MODEL.ATTENTION_PROJECTION_SIZE = 768
+        self._C.MODEL.BEAM_SIZE = 5
+
+        self._C.OPTIM = CN()
+        self._C.OPTIM.BATCH_SIZE = 150
+        self._C.OPTIM.LR = 0.015
+        self._C.OPTIM.MOMENTUM = 0.9
+        self._C.OPTIM.WEIGHT_DECAY = 0.001
+        self._C.OPTIM.CLIP_GRADIENTS = 12.5
+        self._C.OPTIM.NUM_ITERATIONS = 70000
 
         # Override parameter values from YAML file first, then from override list.
         self._C.merge_from_file(config_yaml)

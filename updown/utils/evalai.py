@@ -46,7 +46,7 @@ class NocapsEvaluator(object):
         submission_id_regex = re.search("evalai submission ([0-9]+)", submission_command_stdout)
 
         # Get an integer submission ID (as a string).
-        submission_id = submission_id_regex.group(0).split()[-1]
+        submission_id = submission_id_regex.group(0).split()[-1]  # type: ignore
 
         # Placeholder stdout for a pending submission.
         result_stdout: str = "The Submission is yet to be evaluated."
@@ -65,7 +65,7 @@ class NocapsEvaluator(object):
 
             # Raise error if it takes more than 10 minutes.
             if num_tries == 60:
-                raise ConnectionError("Unable to get results from EvalAI within 5 minutes!")
+                raise ConnectionError("Unable to get results from EvalAI within 10 minutes!")
 
         # Convert result to json.
         # keys: {"in-domain", "near-domain", "out-domain", "entire"}

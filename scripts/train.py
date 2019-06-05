@@ -155,7 +155,7 @@ if __name__ == "__main__":
     checkpoint_manager = CheckpointManager(model, optimizer, _A.serialization_dir, mode="max")
 
     # Evaluator submits predictions to EvalAI and retrieves results.
-    evaluator = NocapsEvaluator(split="val")
+    evaluator = NocapsEvaluator(phase="val")
 
     # Load checkpoint to resume training from there if specified.
     # Infer iteration number through file name (it's hacky but very simple), so don't rename

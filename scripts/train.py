@@ -234,7 +234,7 @@ if __name__ == "__main__":
             evaluation_metrics = evaluator.evaluate(predictions)
 
             # Print and log all evaluation metrics to tensorboard.
-            print("Evaluation metrics after iteration {iteration}:")
+            print(f"Evaluation metrics after iteration {iteration}:")
             for metric_name in evaluation_metrics:
                 tensorboard_writer.add_scalars(
                     f"val/{metric_name}", evaluation_metrics[metric_name], iteration

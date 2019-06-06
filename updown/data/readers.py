@@ -76,7 +76,12 @@ class CocoCaptionsReader(object):
         self._captions_jsonpath = captions_jsonpath
 
         captions_json: Dict[str, Any] = json.load(open(self._captions_jsonpath))
-        PUNCTUATIONS = ["'", "`", "(", ")", "{", "}", "?", "!", ":", "-", "...", ";", "."]
+        # fmt: off
+        PUNCTUATIONS: List[str] = [
+            "''", "#", "&", "$", "/", "'", "`", "(", ")",
+            "{", "}", "?", "!", ":", "-", "...", ";", "."
+        ]
+        # fmt: on
 
         # List of (image id, caption) tuples.
         self._captions: List[Tuple[int, List[str]]] = []

@@ -75,9 +75,9 @@ class NocapsEvaluator(object):
         # Restructing the dict for better logging to tensorbaord.
         metrics = {
             "in-domain": metrics[0]["in-domain"],
-            "near-domain": metrics[0]["near-domain"],
-            "out-domain": metrics[0]["out-domain"],
-            "entire": metrics[0]["entire"],
+            "near-domain": metrics[1]["near-domain"],
+            "out-domain": metrics[2]["out-domain"],
+            "entire": metrics[3]["entire"],
         }
 
         flipped_metrics: Dict[str, Any] = defaultdict(dict)

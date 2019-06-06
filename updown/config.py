@@ -111,5 +111,6 @@ def _config_str(config: Config) -> str:
     __C: CN = CN({"RANDOM_SEED": _C.RANDOM_SEED})
     common_string: str = str(__C) + "\n"
     common_string += str(_C.MODEL) + "\n"
+    common_string += str(_C.OPTIM) + "\n"
 
     return common_string

@@ -77,9 +77,10 @@ class CocoCaptionsReader(object):
 
         captions_json: Dict[str, Any] = json.load(open(self._captions_jsonpath))
         # fmt: off
+        # List of punctuations taken from pycocoevalcap - these are ignored during evaluation.
         PUNCTUATIONS: List[str] = [
-            "''", "#", "&", "$", "/", "'", "`", "(", ")",
-            "{", "}", "?", "!", ":", "-", "...", ";", "."
+            "''", "'", "``", "`", "(", ")", "{", "}",
+            ".", "?", "!", ",", ":", "-", "--", "...", ";"
         ]
         # fmt: on
 
@@ -90,10 +91,9 @@ class CocoCaptionsReader(object):
         for caption_item in tqdm(captions_json["annotations"]):
 
             caption: str = caption_item["caption"].lower()
-            for punctuation in PUNCTUATIONS:
-                caption = caption.replace(punctuation, "")
-
             caption_tokens: List[str] = word_tokenize(caption)
+            caption_tokens = [ct for ct in caption_tokens if ct not in PUNCTUATIONS]
+
             self._captions.append((caption_item["image_id"], caption_tokens))
 
     def __len__(self):

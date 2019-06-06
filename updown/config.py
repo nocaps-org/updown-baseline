@@ -46,11 +46,11 @@ class Config(object):
         self._C.DATA.VAL_FEATURES = "data/nocaps_val_resnet101_faster_rcnn_genome_36.h5"
         self._C.DATA.VAL_FEATURES = "data/nocaps_test_resnet101_faster_rcnn_genome_36.h5"
 
-        self._C.DATA.TRAIN_CAPTIONS = "data/coco/annotations/captions_train2017.json"
+        self._C.DATA.TRAIN_CAPTIONS = "data/coco/captions_train2017.json"
 
         # These really don't contain the captions, just the image info.
-        self._C.DATA.VAL_CAPTIONS = "data/nocaps/annotations/nocaps_val_image_info.json"
-        self._C.DATA.TEST_CAPTIONS = "data/nocaps/annotations/nocaps_test_image_info.json"
+        self._C.DATA.VAL_CAPTIONS = "data/nocaps/nocaps_val_image_info.json"
+        self._C.DATA.TEST_CAPTIONS = "data/nocaps/nocaps_test_image_info.json"
 
         self._C.DATA.MAX_CAPTION_LENGTH = 20
 

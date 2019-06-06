@@ -139,7 +139,7 @@ if __name__ == "__main__":
         momentum=_C.OPTIM.MOMENTUM,
         weight_decay=_C.OPTIM.WEIGHT_DECAY,
     )
-    lr_scheduler = optim.lr_scheduler.LambdaLR(
+    lr_scheduler = optim.lr_scheduler.LambdaLR(  # type: ignore
         optimizer, lr_lambda=lambda iteration: 1 - iteration / _C.OPTIM.NUM_ITERATIONS
     )
 

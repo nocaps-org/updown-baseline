@@ -14,7 +14,7 @@ parser = argparse.ArgumentParser(
 parser.add_argument(
     "-c",
     "--captions-jsonpath",
-    default="data/coco/annotations/captions_train2017.json",
+    default="data/coco/captions_train2017.json",
     help="Path to COCO train2017 captions json file.",
 )
 parser.add_argument("-t", "--word-count-threshold", type=int, default=5)

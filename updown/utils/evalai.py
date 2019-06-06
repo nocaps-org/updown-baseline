@@ -24,24 +24,18 @@ class NocapsEvaluator(object):
         _, predictions_filename = tempfile.mkstemp(suffix=".json", text=True)
         json.dump(predictions, open(predictions_filename, "w"))
 
-        submission_command = subprocess.Popen(
-            [
-                "evalai",
-                "challenge",
-                str(self._challenge_id),
-                "phase",
-                str(self._phase_id),
-                "submit",
-                "--file",
-                predictions_filename,
-            ],
+        submission_command = f"evalai challenge {self._challenge_id} phase {self._phase_id} "
+                             f"submit --file {predictions_filename}"
+
+        submission_command_subprocess = subprocess.Popen(
+            submission_command.split(),
             stdout=subprocess.PIPE,
             stdin=subprocess.PIPE,
             stderr=subprocess.STDOUT,
         )
 
         # This terminal output will have submission ID we need to check.
-        submission_command_stdout = submission_command.communicate(input=b"N\n")[0].decode("utf-8")
+        submission_command_stdout = submission_command_subprocess.communicate(input=b"N\n")[0].decode("utf-8")
 
         submission_id_regex = re.search("evalai submission ([0-9]+)", submission_command_stdout)
 
@@ -72,7 +66,7 @@ class NocapsEvaluator(object):
         # In each of these, keys: {"B1", "B2", "B3", "B4", "METEOR", "ROUGE-L", "CIDEr", "SPICE"}
         metrics = json.loads(result_stdout, encoding="utf-8")
 
-        # Restructing the dict for better logging to tensorbaord.
+        # Restructure the metrics dict for better tensorbaord logging.
         metrics = {
             "in-domain": metrics[0]["in-domain"],
             "near-domain": metrics[1]["near-domain"],

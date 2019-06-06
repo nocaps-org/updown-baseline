@@ -3,8 +3,8 @@ DATA:
   TRAIN_FEATURES: data/coco_train2017_resnet101_faster_rcnn_genome_36.h5
   VAL_FEATURES: data/nocaps_val_resnet101_faster_rcnn_genome_36.h5
 
-  TRAIN_CAPTIONS: data/coco/annotations/captions_train2017.json
-  VAL_CAPTIONS: data/nocaps/annotations/nocaps_val_image_info.json
+  TRAIN_CAPTIONS: data/coco/captions_train2017.json
+  VAL_CAPTIONS: data/nocaps/nocaps_val_image_info.json
 
   MAX_CAPTION_LENGTH: 20
 

@@ -22,7 +22,7 @@ If you find this code useful, please consider citing:
 How to setup ths codebase?
 --------------------------
 
-This codebase requires Python 3.6+ or higher. It uses PyTorch v1.0, and has out of the box support with CUDA 9 and CuDNN 7. The recommended way to set this codebase up is through Anaconda or Miniconda, although this should work just as fine with VirtualEnv.
+This codebase requires Python 3.6+ or higher. It uses PyTorch v1.1, and has out of the box support with CUDA 9 and CuDNN 7. The recommended way to set this codebase up is through Anaconda or Miniconda, although this should work just as fine with VirtualEnv.
 
 ### Install Dependencies
 
@@ -54,10 +54,74 @@ Now you can `import updown` from anywhere in your filesystem as long as you have
 
 ### Download Data
 
-[todo]
+#### Image Features
+
+We provide bottom-up image features for COCO train2017, COCO val2017, nocaps val and nocaps test splits extracted using Faster-RCNN pre-trained on Visual Genome. Download the image features under `$PROJECT_ROOT/data` (or symlink them):
+
+1. COCO train2017 (top-36 features): [link TODO]  
+2. COCO val2017 (top-36 features): [link TODO]  
+3. nocaps val (top-36 features): [link TODO]  
+4. nocaps test (top-36 features): [link TODO]  
+
+#### Annotations
+
+Download COCO captions and nocaps val/test image info and arrange in a directory structure:
+
+    ```
+    $PROJECT_ROOT/data
+        |-- coco
+        |   |-- captions_train2017.json
+        |   +-- captions_cal2017.json
+        +-- nocaps
+            |-- nocaps_val_image_info.json
+            +-- nocaps_test_image_info.json
+    ```
+
+1. COCO captions: http://images.cocodataset.org/annotations/annotations_trainval2017.zip  
+2. nocaps val image info: https://s3.amazonaws.com/nocaps/nocaps_val_image_info.json  
+3. nocaps test image info: https://s3.amazonaws.com/nocaps/nocaps_test_image_info.json  
+
+
+### Build vocabulary
+
+Build caption vocabulary using COCO train2017 captions.
+
+    ```
+    python scripts/build_vocabulary.py -c data/coco/captions_train2017.json -o data/vocabulary
+    ```
+
+
+### EvalAI token
+
+This codebase using EvalAI for evaluating on nocaps val and test splits. Create an account on EvalAI and get Auth token (from profile details).
+
+    ```
+    evalai set_token <your token here>
+    ```
+
+(**todo: screenshot**)
+
+
+Training
+--------
+
+We provide a training script which accepts arguments as config files. The config file should contain arguments which are specific to a particular experiment, such as those defining model architecture, or optimization hyperparameters. Other arguments such as GPU ids, or number of CPU workers should be declared in the script and passed in as argparse-style arguments.
+
+Train the baseline model provided in this repository as:
+
+    ```
+    python scripts/train.py --config configs/updown_nocaps_val.yml --gpu-ids 0 --serialization-dir checkpoints/updown_baseline
+    ```
+
+### Saving model checkpoints
+
+This script will serialize model checkpoints every few iterations, and keep track of bestperforming checkpoint based on overall CIDEr score. Refer [updown/utils/checkpointing.py][2] for more details on how checkpointing is managed.
+
+### Logging
+
+Execute `tensorboard --logdir /path/to/serialization_dir --port 8008` and visit `localhost:8008` in the browser.
 
 
 [1]: nocaps.org
-[2]: https://kdexd.github.io/probnmn-clevr/probnmn/usage/setup_dependencies.html
-[3]: https://kdexd.github.io/probnmn-clevr/probnmn/usage/training.html
-[4]: https://kdexd.github.io/probnmn-clevr/probnmn/usage/evaluation_inference.html
+[2]: https://github.com/kdex/updown-baseline/blob/master/updown/utils/checkpointing.py
+[3]: https://www.github.com/lanpa/tensorboardX

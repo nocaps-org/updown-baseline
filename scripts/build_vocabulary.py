@@ -30,13 +30,13 @@ parser.add_argument(
 # All the punctuations in COCO captions, we will remove them.
 # fmt: off
 PUNCTUATIONS: List[str] = [
-    "''", "#", "&", "$", "/", "'", "`", "(", ")", "{", "}", "?", "!", ":", "-", "...", ";", "."
+    "''", "'", "``", "`", "(", ")", "{", "}", ".", "?", "!", ",", ":", "-", "--", "...", ";"
 ]
 # fmt: on
 
 # Special tokens which should be added (all, or a subset) to the vocabulary.
-# DO NOT write @@PADDING@@ token, AllenNLP would always add it internally.
-SPECIAL_TOKENS: List[str] = ["@@UNKNOWN@@", "@start@", "@end@"]
+# We use the same token for @@PADDING@@ and @@UNKNOWN@@ -- @@UNKNOWN@@.
+SPECIAL_TOKENS: List[str] = ["@@UNKNOWN@@", "@@BOUNDARY@@"]
 
 # Type for each COCO caption example annotation.
 CocoCaptionExample = TypedDict("CocoCaptionExample", {"id": int, "image_id": int, "caption": str})
@@ -55,21 +55,20 @@ def build_caption_vocabulary(
 
     # Accumulate unique caption tokens from all caption sequences.
     for item in tqdm(caption_json):
-        sequence: str = item["caption"].lower().strip()
-        for punctuation in PUNCTUATIONS:
-            sequence = sequence.replace(punctuation, "")
+        caption: str = item["caption"].lower().strip()
+        caption_tokens: List[str] = word_tokenize(caption)
+        caption_tokens = [ct for ct in caption_tokens if ct not in PUNCTUATIONS]
 
-        sequence_tokens = word_tokenize(sequence)
-        for token in sequence_tokens:
+        for token in caption_tokens:
             if token in word_counts:
                 word_counts[token] += 1
             else:
                 word_counts[token] = 1
 
-    caption_tokens = sorted(
+    all_caption_tokens = sorted(
         [key for key in word_counts if word_counts[key] >= word_count_threshold]
     )
-    caption_vocabulary: List[str] = sorted(list(caption_tokens))
+    caption_vocabulary: List[str] = sorted(list(all_caption_tokens))
     return caption_vocabulary
 
 
@@ -89,7 +88,7 @@ if __name__ == "__main__":
     # Write the vocabulary to separate namespace files in directory.
     print(f"Writing the vocabulary to {args.output_dirpath}...")
     print("Namespaces: tokens.")
-    print("Non-padded namespaces: labels.")
+    print("Non-padded namespaces: tokens.")
 
     os.makedirs(args.output_dirpath, exist_ok=True)
 
@@ -98,4 +97,4 @@ if __name__ == "__main__":
             f.write(caption_token + "\n")
 
     with open(os.path.join(args.output_dirpath, "non_padded_namespaces.txt"), "w") as f:
-        f.write("labels")
+        f.write("tokens")

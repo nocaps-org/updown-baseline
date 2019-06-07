@@ -71,11 +71,10 @@ class UpDownCell(nn.Module):
             matrix_mask=torch.sum(torch.abs(image_features), dim=-1) != 0,
         )
 
-        # shape: (batch_size, num_boxes, image_feature_size)
-        weighted_image_features = attention_weights.unsqueeze(-1) * image_features
-
         # shape: (batch_size, image_feature_size)
-        attended_image_features = torch.sum(weighted_image_features, dim=1)
+        attended_image_features = torch.sum(
+            attention_weights.unsqueeze(-1) * image_features, dim=1
+        )
 
         # shape: (batch_size, image_feature_size + hidden_size)
         language_lstm_cell_input = torch.cat([attended_image_features, states["h1"]], dim=1)

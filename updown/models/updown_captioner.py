@@ -31,10 +31,8 @@ class UpDownCaptioner(nn.Module):
         vocab_size = vocabulary.get_vocab_size()
 
         # Short hand variable names for convenience.
-        self._pad_index = vocabulary.get_token_index("@@PADDING@@")
-        self._unk_index = vocabulary.get_token_index("@@UNKNOWN@@")
-        self._sos_index = vocabulary.get_token_index("@start@")
-        self._eos_index = vocabulary.get_token_index("@end@")
+        self._pad_index = vocabulary.get_token_index("@@UNKNOWN@@")
+        self._boundary_index = vocabulary.get_token_index("@@BOUNDARY@@")
 
         self._embedding_layer = nn.Embedding(
             vocab_size, embedding_size, padding_idx=self._pad_index
@@ -50,7 +48,7 @@ class UpDownCaptioner(nn.Module):
         # We use beam search to find the most likely caption during inference.
         self._beam_size = beam_size
         self._beam_search = BeamSearch(
-            self._eos_index, max_steps=max_caption_length, beam_size=beam_size
+            self._boundary_index, max_steps=max_caption_length, beam_size=beam_size
         )
 
     def forward(
@@ -65,8 +63,8 @@ class UpDownCaptioner(nn.Module):
             caption_tokens, _ = add_sentence_boundary_token_ids(
                 caption_tokens,
                 (caption_tokens != self._pad_index),
-                self._sos_index,
-                self._eos_index,
+                self._boundary_index,
+                self._boundary_index,
             )
 
             batch_size, max_caption_length = caption_tokens.size()
@@ -93,9 +91,8 @@ class UpDownCaptioner(nn.Module):
                 # shape: (batch_size, vocab_size)
                 token_probabilities = F.softmax(output_logits, dim=-1)
 
-                # Perform categorical sampling, don't sample @@PADDING@@, @start@.
+                # Perform categorical sampling, don't sample @@UNKNOWN@@.
                 token_probabilities[:, self._pad_index] = 0
-                token_probabilities[:, self._sos_index] = 0
 
                 # shape: (batch_size, )
                 predicted_tokens = torch.multinomial(token_probabilities, 1)
@@ -114,7 +111,7 @@ class UpDownCaptioner(nn.Module):
 
             batch_size = image_features.size(0)
             start_predictions = image_features.new_full(
-                (batch_size,), fill_value=self._sos_index
+                (batch_size,), fill_value=self._boundary_index
             ).long()
 
             # Add image features as a default argument to match callable signature acceptable by

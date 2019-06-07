@@ -24,7 +24,7 @@ class NocapsEvaluator(object):
         _, predictions_filename = tempfile.mkstemp(suffix=".json", text=True)
         json.dump(predictions, open(predictions_filename, "w"))
 
-        submission_command = f"evalai challenge {self._challenge_id} phase {self._phase_id} "
+        submission_command = f"evalai challenge {self._challenge_id} phase {self._phase_id} " \
                              f"submit --file {predictions_filename}"
 
         submission_command_subprocess = subprocess.Popen(

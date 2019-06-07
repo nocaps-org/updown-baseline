@@ -90,7 +90,7 @@ class CocoCaptionsReader(object):
         print(f"Tokenizing captions from {captions_jsonpath}...")
         for caption_item in tqdm(captions_json["annotations"]):
 
-            caption: str = caption_item["caption"].lower()
+            caption: str = caption_item["caption"].lower().strip()
             caption_tokens: List[str] = word_tokenize(caption)
             caption_tokens = [ct for ct in caption_tokens if ct not in PUNCTUATIONS]
 

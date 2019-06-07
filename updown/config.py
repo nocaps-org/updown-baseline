@@ -44,7 +44,7 @@ class Config(object):
 
         self._C.DATA.TRAIN_FEATURES = "data/coco_train2017_resnet101_faster_rcnn_genome_36.h5"
         self._C.DATA.VAL_FEATURES = "data/nocaps_val_resnet101_faster_rcnn_genome_36.h5"
-        self._C.DATA.VAL_FEATURES = "data/nocaps_test_resnet101_faster_rcnn_genome_36.h5"
+        self._C.DATA.TEST_FEATURES = "data/nocaps_test_resnet101_faster_rcnn_genome_36.h5"
 
         self._C.DATA.TRAIN_CAPTIONS = "data/coco/captions_train2017.json"
 

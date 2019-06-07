@@ -32,13 +32,15 @@ class TrainingDataset(Dataset):
         image_id, caption = self._captions_reader[index]
         image_features = self._image_features_reader[image_id]
 
-        # Tokenize caption.
-        caption_tokens: List[int] = [self._vocabulary.get_token_index(c) for c in caption]
+        # Tokenize caption, ignore @@UNKNOWN@@ token in the caption.
+        caption_tokens: List[int] = [
+            self._vocabulary.get_token_index(c) for c in caption if c != "@@UNKNOWN@@"
+        ]
 
         # Pad upto max_caption_length.
         caption_tokens = caption_tokens[: self._max_caption_length]
         caption_tokens.extend(
-            [self._vocabulary.get_token_index("@@PADDING@@")]
+            [self._vocabulary.get_token_index("@@UNKNOWN@@")]
             * (self._max_caption_length - len(caption_tokens))
         )
 

@@ -126,7 +126,7 @@ if __name__ == "__main__":
 
             # De-tokenize caption tokens and trim until first "@end@".
             caption = [vocabulary.get_token_from_index(p.item()) for p in instance_predictions]
-            eos_occurences = [j for j in range(len(caption)) if caption[j] == "@end@"]
+            eos_occurences = [j for j in range(len(caption)) if caption[j] == "@@BOUNDARY@@"]
             caption = caption[: eos_occurences[0]] if len(eos_occurences) > 0 else caption
 
             predictions.append({"image_id": image_id.item(), "caption": " ".join(caption)})

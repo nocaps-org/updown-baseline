@@ -1,3 +1,4 @@
+from functools import lru_cache
 from typing import Optional
 
 import torch
@@ -18,15 +19,15 @@ class LinearAttentionWithProjection(nn.Module):
         self._attention_layer = nn.Linear(projection_size, 1, bias=False)
 
     def forward(self,
-                vector: torch.Tensor,
-                matrix: torch.Tensor,
-                matrix_mask: Optional[torch.Tensor] = None) -> torch.Tensor:
+                vector: torch.FloatTensor,
+                matrix: torch.FloatTensor,
+                matrix_mask: Optional[torch.FloatTensor] = None) -> torch.FloatTensor:
 
         # shape: (batch_size, projection_size)
-        projected_vector = self._vector_projection_layer(vector)
+        projected_vector = self._project_vector(vector)
 
         # shape: (batch_size, num_candidates, projection_size)
-        projected_matrix = self._matrix_projection_layer(matrix)
+        projected_matrix = self._project_matrix(matrix)
 
         # Broadcast vector as matrix for addition.
         # shape: (batch_size, num_candidates, projection_size)
@@ -46,3 +47,11 @@ class LinearAttentionWithProjection(nn.Module):
             attention_weights = torch.softmax(attention_logits, dim=-1)
 
         return attention_weights
+
+    @lru_cache(maxsize=10)
+    def _project_vector(self, vector: torch.FloatTensor):
+        return self._vector_projection_layer(vector)
+
+    @lru_cache(maxsize=10)
+    def _project_matrix(self, matrix: torch.FloatTensor):
+        return self._matrix_projection_layer(matrix)

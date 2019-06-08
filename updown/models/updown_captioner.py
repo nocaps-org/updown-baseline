@@ -180,6 +180,11 @@ class UpDownCaptioner(nn.Module):
         # shape: (batch_size, num_decoding_steps)
         relevant_mask = target_mask[:, 1:].contiguous()
 
-        return sequence_cross_entropy_with_logits(
+        # shape: (batch_size, )
+        relevant_lengths = torch.sum(relevant_mask, dim=-1)
+
+        # Multiply (length normalized) negative logprobs of the sequence with its length.
+        # shape: (batch_size, )
+        return relevant_lengths * sequence_cross_entropy_with_logits(
             logits, relevant_targets, relevant_mask, average=None
         )

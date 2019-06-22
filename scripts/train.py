@@ -1,7 +1,6 @@
 import argparse
 import os
-from typing import Any, Dict, List, Type
-from mypy_extensions import TypedDict
+from typing import Any, Dict, List
 
 import numpy as np
 from tensorboardX import SummaryWriter
@@ -15,6 +14,7 @@ from allennlp.data import Vocabulary
 from updown.config import Config
 from updown.data.datasets import TrainingDataset, ValidationDataset
 from updown.models import UpDownCaptioner
+from updown.types import Prediction
 from updown.utils.checkpointing import CheckpointManager
 from updown.utils.common import cycle
 from updown.utils.evalai import NocapsEvaluator
@@ -52,7 +52,7 @@ parser.add_argument(
 )
 parser.add_argument(
     "--checkpoint-every",
-    default=500,
+    default=1000,
     type=int,
     help="Save a checkpoint after every this many epochs/iterations.",
 )
@@ -107,7 +107,11 @@ if __name__ == "__main__":
         in_memory=_A.in_memory,
     )
     train_dataloader = DataLoader(
-        train_dataset, batch_size=_C.OPTIM.BATCH_SIZE, shuffle=True, num_workers=_A.cpu_workers
+        train_dataset,
+        batch_size=_C.OPTIM.BATCH_SIZE,
+        shuffle=True,
+        num_workers=_A.cpu_workers,
+        collate_fn=train_dataset.collate_fn,
     )
     # Make dataloader cyclic for sampling batches perpetually.
     train_dataloader = cycle(train_dataloader, device)
@@ -115,8 +119,13 @@ if __name__ == "__main__":
     val_dataset = ValidationDataset(
         image_features_h5path=_C.DATA.VAL_FEATURES, in_memory=_A.in_memory
     )
+    # Use a smaller batch during validation (accounting beam size) to fit in memory.
     val_dataloader = DataLoader(
-        val_dataset, batch_size=_C.OPTIM.BATCH_SIZE, shuffle=False, num_workers=_A.cpu_workers
+        val_dataset,
+        batch_size=_C.OPTIM.BATCH_SIZE // _C.MODEL.BEAM_SIZE,
+        shuffle=False,
+        num_workers=_A.cpu_workers,
+        collate_fn=val_dataset.collate_fn,
     )
 
     model = UpDownCaptioner(
@@ -199,7 +208,6 @@ if __name__ == "__main__":
         if iteration % _A.checkpoint_every == 0:
             model.eval()
 
-            Prediction = TypedDict("Prediction", {"image_id": int, "caption": str})
             predictions: List[Prediction] = []
 
             for batch in tqdm(val_dataloader):
@@ -213,11 +221,13 @@ if __name__ == "__main__":
                 for i, image_id in enumerate(batch["image_id"]):
                     instance_predictions = batch_predictions[i, :]
 
-                    # De-tokenize caption tokens and trim until first "@end@".
+                    # De-tokenize caption tokens and trim until first "@@BOUNDARY@@".
                     caption = [
                         vocabulary.get_token_from_index(p.item()) for p in instance_predictions
                     ]
-                    eos_occurences = [j for j in range(len(caption)) if caption[j] == "@@BOUNDARY@@"]
+                    eos_occurences = [
+                        j for j in range(len(caption)) if caption[j] == "@@BOUNDARY@@"
+                    ]
                     caption = caption[: eos_occurences[0]] if len(eos_occurences) > 0 else caption
 
                     predictions.append({"image_id": image_id.item(), "caption": " ".join(caption)})

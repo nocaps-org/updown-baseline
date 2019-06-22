@@ -49,33 +49,30 @@ class ImageFeaturesReader(object):
             features_h5.close()
 
         else:
-            features_h5 = h5py.File(self.features_h5path, "r")
+            self.features_h5 = h5py.File(self.features_h5path, "r")
+            image_id_np = np.array(self.features_h5["image_id"])
             self._map = {
-                features_h5["image_id"][index]: index
-                for index in range(features_h5["image_id"].shape[0])
+                image_id_np[index]: index for index in range(image_id_np.shape[0])
             }
-            features_h5.close()
 
     def __len__(self):
         return len(self._map)
 
     def __getitem__(self, image_id: int):
         if self._in_memory:
-            return self._map[image_id]
+            return self._map[image_id].reshape(-1, 2048)
         else:
-            # Read chunk from file everytime if not loaded in memory.
-            with h5py.File(self.features_h5path, "r") as features_h5:
-                index = self._map[image_id]
-                image_id_features = features_h5["features"][index]
-            # Shape typically (36, 2048), if extracted using Faster-RCNN with ResNet-101 backbone.
-            return image_id_features
+            index = self._map[image_id]
+            image_id_features = self.features_h5["features"][index]
+            return image_id_features.reshape(-1, 2048)
 
 
 class CocoCaptionsReader(object):
     def __init__(self, captions_jsonpath: str):
         self._captions_jsonpath = captions_jsonpath
 
-        captions_json: Dict[str, Any] = json.load(open(self._captions_jsonpath))
+        with open(self._captions_jsonpath) as cap:
+            captions_json: Dict[str, Any] = json.load(cap)
         # fmt: off
         # List of punctuations taken from pycocoevalcap - these are ignored during evaluation.
         PUNCTUATIONS: List[str] = [

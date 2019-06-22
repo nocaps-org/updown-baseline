@@ -45,7 +45,7 @@ class UpDownCell(nn.Module):
         # Average pooling of image features happens only at the first timestep. LRU cache
         # saves compute by not executing the function call in subsequent timesteps.
         # shape: (batch_size, image_feature_size), (batch_size, num_boxes)
-        average_image_features, image_feature_mask = self._average_image_features(image_features)
+        averaged_image_features, image_feature_mask = self._average_image_features(image_features)
 
         # Initialize (h1, c1), (h2, c2) if not passed.
         if states is None:
@@ -56,9 +56,6 @@ class UpDownCell(nn.Module):
                 "h2": state.clone(),
                 "c2": state.clone(),
             }
-
-        # shape: (batch_size, image_feature_size)
-        averaged_image_features = torch.mean(image_features, dim=1)
 
         # shape: (batch_size, embedding_size + image_feature_size + hidden_size)
         attention_lstm_cell_input = torch.cat(
@@ -94,9 +91,11 @@ class UpDownCell(nn.Module):
     ) -> Tuple[torch.FloatTensor, torch.LongTensor]:
 
         # shape: (batch_size, num_boxes)
-        image_feature_mask = torch.sum(torch.abs(image_features), dim=-1) == 0
+        image_feature_mask = torch.sum(torch.abs(image_features), dim=-1) > 0   
 
         # shape: (batch_size, image_feature_size)
-        averaged_image_features = masked_mean(image_features, image_feature_mask, dim=1)
+        averaged_image_features = masked_mean(
+            image_features, image_feature_mask.unsqueeze(-1), dim=1
+        )
 
         return averaged_image_features, image_feature_mask

@@ -21,7 +21,7 @@ class UpDownCaptioner(nn.Module):
         attention_projection_size: int,
         max_caption_length: int = 20,
         beam_size: int = 1,
-    ):
+    ) -> None:
         super().__init__()
 
         self._vocabulary = vocabulary
@@ -45,21 +45,28 @@ class UpDownCaptioner(nn.Module):
         self._output_layer = nn.Linear(hidden_size, vocab_size)
         self._log_softmax = nn.LogSoftmax(dim=1)
 
+        self._caption_loss = nn.CrossEntropyLoss(ignore_index=self._pad_index)
+
         # We use beam search to find the most likely caption during inference.
         self._beam_size = beam_size
         self._beam_search = BeamSearch(
-            self._boundary_index, max_steps=max_caption_length, beam_size=beam_size
+            self._boundary_index,
+            max_steps=max_caption_length,
+            beam_size=beam_size,
+            per_node_beam_size=beam_size // 2,
         )
 
     def forward(
         self, image_features: torch.FloatTensor, caption_tokens: Optional[torch.LongTensor] = None
     ):
 
+        batch_size = image_features.size(0)
+
         # Initialize states at zero-th timestep.
         states = None
 
         if self.training and caption_tokens is not None:
-            # Add "@start@" and "@end@" tokens to caption sequences.
+            # Add "@@BOUNDARY@@" tokens to caption sequences.
             caption_tokens, _ = add_sentence_boundary_token_ids(
                 caption_tokens,
                 (caption_tokens != self._pad_index),
@@ -67,17 +74,16 @@ class UpDownCaptioner(nn.Module):
                 self._boundary_index,
             )
 
-            batch_size, max_caption_length = caption_tokens.size()
+            _, max_caption_length = caption_tokens.size()
 
             # shape: (batch_size, max_caption_length)
             tokens_mask = caption_tokens != self._pad_index
 
-            # The last input from the target is either padding or the end symbol.
+            # The last input from the target is either padding or the boundary token.
             # Either way, we don't have to process it.
             num_decoding_steps = max_caption_length - 1
 
             step_logits: List[torch.Tensor] = []
-            step_predictions: List[torch.Tensor] = []
             for timestep in range(num_decoding_steps):
                 # shape: (batch_size,)
                 input_tokens = caption_tokens[:, timestep]
@@ -88,28 +94,18 @@ class UpDownCaptioner(nn.Module):
                 # list of tensors, shape: (batch_size, 1, vocab_size)
                 step_logits.append(output_logits.unsqueeze(1))
 
-                # shape: (batch_size, vocab_size)
-                token_probabilities = F.softmax(output_logits, dim=-1)
-
-                # Perform categorical sampling, don't sample @@UNKNOWN@@.
-                token_probabilities[:, self._pad_index] = 0
-
-                # shape: (batch_size, )
-                predicted_tokens = torch.multinomial(token_probabilities, 1)
-                step_predictions.append(predicted_tokens)
-
             # shape: (batch_size, num_decoding_steps)
-            predictions = torch.cat(step_predictions, 1)
             logits = torch.cat(step_logits, 1)
 
+            # Skip first time-step from targets for calculating loss.
             output_dict = {
-                "predictions": predictions,
-                "loss": self._get_loss(logits, caption_tokens, tokens_mask),
+                "loss": self._get_loss(
+                    logits, caption_tokens[:, 1:].contiguous(), tokens_mask[:, 1:].contiguous()
+                )
             }
         else:
             num_decoding_steps = self._max_caption_length
 
-            batch_size = image_features.size(0)
             start_predictions = image_features.new_full(
                 (batch_size,), fill_value=self._boundary_index
             ).long()
@@ -169,22 +165,22 @@ class UpDownCaptioner(nn.Module):
 
         return outputs, states  # type: ignore
 
-    @staticmethod
     def _get_loss(
-        logits: torch.FloatTensor, targets: torch.LongTensor, target_mask: torch.LongTensor
+        self, logits: torch.FloatTensor, targets: torch.LongTensor, target_mask: torch.LongTensor
     ):
 
-        # shape: (batch_size, num_decoding_steps)
-        relevant_targets = targets[:, 1:].contiguous()
-
-        # shape: (batch_size, num_decoding_steps)
-        relevant_mask = target_mask[:, 1:].contiguous()
-
         # shape: (batch_size, )
-        relevant_lengths = torch.sum(relevant_mask, dim=-1)
+        target_lengths = torch.sum(target_mask, dim=-1).float()
 
         # Multiply (length normalized) negative logprobs of the sequence with its length.
         # shape: (batch_size, )
-        return relevant_lengths * sequence_cross_entropy_with_logits(
-            logits, relevant_targets, relevant_mask, average=None
+        return target_lengths * sequence_cross_entropy_with_logits(
+            logits, targets, target_mask, average=None
         )
+
+        # return (
+        #     self._caption_loss(
+        #         logits.view(-1, self._vocabulary.get_vocab_size()), targets.view(-1)
+        #     )
+        #     * self._max_caption_length
+        # )

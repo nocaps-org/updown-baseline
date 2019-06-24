@@ -12,11 +12,12 @@ Mark Johnson, Dhruv Batra, Devi Parikh, Stefan Lee, Peter Anderson
 If you find this code useful, please consider citing:
 
 ```text
-@Article{nocaps,
-    Author  = {Harsh Agrawal* and Karan Desai* and Yufei Wang and Xinlei Chen and Rishabh Jain and Mark Johnson and Dhruv Batra and Devi Parikh and Stefan Lee and Peter Anderson},
-    Title   = {{nocaps}: {n}ovel {o}bject {c}aptioning {a}t {s}cale},
-    Journal = {arXiv preprint arXiv:1812.08658},
-    Year    = {2018},
+@article{nocaps,
+  author  = {Harsh Agrawal* and Karan Desai* and Yufei Wang and Xinlei Chen and Rishabh Jain and
+             Mark Johnson and Dhruv Batra and Devi Parikh and Stefan Lee and Peter Anderson},
+  title   = {{nocaps}: {n}ovel {o}bject {c}aptioning {a}t {s}cale},
+  journal = {arXiv preprint arXiv:1812.08658},
+  year    = {2018},
 }
 ```
 
@@ -24,30 +25,27 @@ If you find this code useful, please consider citing:
 How to setup this codebase?
 ---------------------------
 
-This codebase requires Python 3.6+ or higher. It uses PyTorch v1.1, and has out of the box support with CUDA 9 and CuDNN 7. The recommended way to set this codebase up is through Anaconda or Miniconda. However, it should work just as fine with VirtualEnv.
+This codebase requires Python 3.6+ or higher. It uses PyTorch v1.1, and has out of the box support
+with CUDA 9 and CuDNN 7. The recommended way to set this codebase up is through Anaconda or
+Miniconda. However, it should work just as fine with VirtualEnv.
 
 ### Install Dependencies
 
 1. Install Anaconda or Miniconda distribution based on Python3+ from their [downloads' site][2].
 
-2. Clone the repository first.
+2. Clone the repository.
 
-```
+```sh
 git clone https://www.github.com/nocaps-org/updown-baseline
 cd updown-baseline
 ```
 
-3. Create a conda environment and install all the dependencies.
+3. Create a conda environment and install all the dependencies, and this codebase as a package in development version. 
 
-```
+```sh
 conda create -n updown python=3.6
 conda activate updown
 pip install -r requirements.txt
-```
-
-4. Install this codebase as a package in development version.
-
-```
 python setup.py develop
 ```
 
@@ -56,9 +54,12 @@ Now you can `import updown` from anywhere in your filesystem as long as you have
 
 #### Download Image Features
 
-We provide pre-extracted bottom-up features for COCO and `nocaps` splits. These are extracted using Faster-RCNN detector pretrained on Visual Genome. We extract features for 100 region proposals for an image, and select them based on class detection confidence threshold of 0.2 - we finally get 10-100 features per image (adaptive). 
+We provide pre-extracted bottom-up features for COCO and `nocaps` splits. These are extracted
+using a Faster-RCNN detector pretrained on Visual Genome ([Anderson et al. 2017][7]). We extract
+features from 100 region proposals for an image, and select them based on a confidence threshold
+of 0.2 - we finally get 10-100 features per image (adaptive). 
 
-Download the image features under `$PROJECT_ROOT/data` (or symlink them):
+Download (or symlink) the image features under `$PROJECT_ROOT/data` directory:
 
 1. COCO train2017: [link TODO]  
 2. COCO val2017: [link TODO]  

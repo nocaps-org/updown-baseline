@@ -38,7 +38,7 @@ class CheckpointManager(object):
     Examples
     --------
     >>> model = torch.nn.Linear(10, 2)
-    >>> optimizer = torch.optim.Adam(model.parameters())
+    >>> optimizer = torch.optim.SGD(model.parameters())
     >>> ckpt_manager = CheckpointManager({"model": model}, optimizer, "/tmp/ckpt", mode="min")
     >>> num_epochs = 20
     >>> for epoch in range(num_epochs):

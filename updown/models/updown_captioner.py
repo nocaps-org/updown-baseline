@@ -177,10 +177,3 @@ class UpDownCaptioner(nn.Module):
         return target_lengths * sequence_cross_entropy_with_logits(
             logits, targets, target_mask, average=None
         )
-
-        # return (
-        #     self._caption_loss(
-        #         logits.view(-1, self._vocabulary.get_vocab_size()), targets.view(-1)
-        #     )
-        #     * self._max_caption_length
-        # )

@@ -57,7 +57,7 @@ class UpDownCell(nn.Module):
                 "c2": state.clone(),
             }
 
-        # shape: (batch_size, embedding_size + image_feature_size + hidden_size)
+        # shape: (batch_size, embedding_size + image_feature_size + 2 * hidden_size)
         attention_lstm_cell_input = torch.cat(
             [token_embedding, averaged_image_features, states["h1"], states["h2"]], dim=1
         )
@@ -75,7 +75,7 @@ class UpDownCell(nn.Module):
             attention_weights.unsqueeze(-1) * image_features, dim=1
         )
 
-        # shape: (batch_size, image_feature_size + hidden_size)
+        # shape: (batch_size, image_feature_size + 2 * hidden_size)
         language_lstm_cell_input = torch.cat(
             [attended_image_features, states["h1"], states["h2"]], dim=1
         )

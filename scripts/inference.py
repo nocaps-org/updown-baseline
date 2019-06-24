@@ -1,8 +1,6 @@
 import argparse
 import json
-import os
 from typing import List
-from mypy_extensions import TypedDict
 
 import numpy as np
 import torch
@@ -15,6 +13,7 @@ from allennlp.data import Vocabulary
 from updown.config import Config
 from updown.data.datasets import InferenceDataset
 from updown.models import UpDownCaptioner
+from updown.types import Prediction
 
 
 parser = argparse.ArgumentParser(
@@ -109,7 +108,6 @@ if __name__ == "__main__":
     # --------------------------------------------------------------------------------------------
     model.eval()
 
-    Prediction = TypedDict("Prediction", {"image_id": int, "caption": str})
     predictions: List[Prediction] = []
 
     for batch in tqdm(test_dataloader):
@@ -124,7 +122,7 @@ if __name__ == "__main__":
         for i, image_id in enumerate(batch["image_id"]):
             instance_predictions = batch_predictions[i, :]
 
-            # De-tokenize caption tokens and trim until first "@end@".
+            # De-tokenize caption tokens and trim until first "@@BOUNDARY@@".
             caption = [vocabulary.get_token_from_index(p.item()) for p in instance_predictions]
             eos_occurences = [j for j in range(len(caption)) if caption[j] == "@@BOUNDARY@@"]
             caption = caption[: eos_occurences[0]] if len(eos_occurences) > 0 else caption

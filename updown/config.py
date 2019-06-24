@@ -13,10 +13,9 @@ class Config(object):
 
     Extended Summary
     ----------------
-    This class definition contains default values corresponding to ``joint_training`` phase, as it
-    is the final training phase and uses almost all the configuration parameters. Modification of
-    any parameter after instantiating this class is not possible, so you must override required
-    parameter values in either through ``config_yaml`` file or ``config_override`` list.
+    This class definition contains default hyperparameters for the UpDown baseline from our paper.
+    Modification of any parameter after instantiating this class is not possible, so you must
+    override required parameter values in either through ``config_yaml`` or ``config_override``.
 
     Parameters
     ----------
@@ -42,9 +41,9 @@ class Config(object):
         self._C.DATA = CN()
         self._C.DATA.VOCABULARY = "data/vocabulary"
 
-        self._C.DATA.TRAIN_FEATURES = "data/coco_train2017_resnet101_faster_rcnn_genome_36.h5"
-        self._C.DATA.VAL_FEATURES = "data/nocaps_val_resnet101_faster_rcnn_genome_36.h5"
-        self._C.DATA.TEST_FEATURES = "data/nocaps_test_resnet101_faster_rcnn_genome_36.h5"
+        self._C.DATA.TRAIN_FEATURES = "data/coco_train2017_resnet101_faster_rcnn_genome_adaptive.h5"
+        self._C.DATA.VAL_FEATURES = "data/nocaps_val_resnet101_faster_rcnn_genome_adaptive.h5"
+        self._C.DATA.TEST_FEATURES = "data/nocaps_test_resnet101_faster_rcnn_genome_adaptive.h5"
 
         self._C.DATA.TRAIN_CAPTIONS = "data/coco/captions_train2017.json"
 

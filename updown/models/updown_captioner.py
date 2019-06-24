@@ -24,6 +24,11 @@ class UpDownCaptioner(nn.Module):
     ) -> None:
         super().__init__()
 
+        self.image_feature_size = image_feature_size
+        self.embedding_size = embedding_size
+        self.hidden_size = hidden_size
+        self.attention_projection_size = attention_projection_size
+
         self._vocabulary = vocabulary
         self._max_caption_length = max_caption_length
 
@@ -60,7 +65,12 @@ class UpDownCaptioner(nn.Module):
         self, image_features: torch.FloatTensor, caption_tokens: Optional[torch.LongTensor] = None
     ):
 
+        # shape: (batch_size, num_boxes * image_feature_size) for adaptive features.
+        # shape: (batch_size, num_boxes, image_feature_size) for fixed features.
         batch_size = image_features.size(0)
+
+        # shape: (batch_size, num_boxes, image_feature_size)
+        image_features = image_features.view(batch_size, -1, self.image_feature_size)
 
         # Initialize states at zero-th timestep.
         states = None

@@ -11,14 +11,15 @@ from updown.types import TrainingInstance, TrainingBatch, ValidationInstance, Va
 
 
 def _collate_image_features(image_features_list: List[np.ndarray]) -> np.ndarray:
-    image_features_size = image_features_list[0].shape[1]
-    num_boxes = [instance.shape[0] for instance in image_features_list]
+    # This will be (num_boxes * image_features_size) for adaptive features because of the way
+    # these features are saved in H5 file.
+    image_features_dim = [instance.shape[0] for instance in image_features_list]
 
     image_features = np.zeros(
-        (len(image_features_list), max(num_boxes), image_features_size), dtype=np.float32
+        (len(image_features_list), max(image_features_dim)), dtype=np.float32
     )
-    for i, (instance, boxes) in enumerate(zip(image_features_list, num_boxes)):
-        image_features[i, :boxes] = instance
+    for i, (instance, dim) in enumerate(zip(image_features_list, image_features_dim)):
+        image_features[i, :dim] = instance
     return image_features
 
 

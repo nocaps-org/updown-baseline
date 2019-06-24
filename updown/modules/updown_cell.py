@@ -24,13 +24,13 @@ class UpDownCell(nn.Module):
         self.attention_projection_size = attention_projection_size
 
         self._attention_lstm_cell = nn.LSTMCell(
-            self.embedding_size + self.image_feature_size + 2 * self.hidden_size, self.hidden_size
+            self.embedding_size + self.image_feature_size + self.hidden_size, self.hidden_size
         )
         self._butd_attention = LinearAttentionWithProjection(
             self.hidden_size, self.image_feature_size, self.attention_projection_size
         )
         self._language_lstm_cell = nn.LSTMCell(
-            self.image_feature_size + 2 * self.hidden_size, self.hidden_size
+            self.image_feature_size + self.hidden_size, self.hidden_size
         )
 
     def forward(
@@ -57,9 +57,9 @@ class UpDownCell(nn.Module):
                 "c2": state.clone(),
             }
 
-        # shape: (batch_size, embedding_size + image_feature_size + 2 * hidden_size)
+        # shape: (batch_size, embedding_size + image_feature_size + hidden_size)
         attention_lstm_cell_input = torch.cat(
-            [token_embedding, averaged_image_features, states["h1"], states["h2"]], dim=1
+            [token_embedding, averaged_image_features, states["h2"]], dim=1
         )
         states["h1"], states["c1"] = self._attention_lstm_cell(
             attention_lstm_cell_input, (states["h1"], states["c1"])
@@ -75,9 +75,9 @@ class UpDownCell(nn.Module):
             attention_weights.unsqueeze(-1) * image_features, dim=1
         )
 
-        # shape: (batch_size, image_feature_size + 2 * hidden_size)
+        # shape: (batch_size, image_feature_size + hidden_size)
         language_lstm_cell_input = torch.cat(
-            [attended_image_features, states["h1"], states["h2"]], dim=1
+            [attended_image_features, states["h1"]], dim=1
         )
         states["h2"], states["c2"] = self._language_lstm_cell(
             language_lstm_cell_input, (states["h2"], states["c2"])

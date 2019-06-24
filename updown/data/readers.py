@@ -60,11 +60,11 @@ class ImageFeaturesReader(object):
 
     def __getitem__(self, image_id: int):
         if self._in_memory:
-            return self._map[image_id].reshape(-1, 2048)
+            return self._map[image_id]
         else:
             index = self._map[image_id]
             image_id_features = self.features_h5["features"][index]
-            return image_id_features.reshape(-1, 2048)
+            return image_id_features
 
 
 class CocoCaptionsReader(object):

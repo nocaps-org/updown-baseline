@@ -12,7 +12,7 @@ from tqdm import tqdm
 from allennlp.data import Vocabulary
 
 from updown.config import Config
-from updown.data.datasets import TrainingDataset, ValidationDataset
+from updown.data.datasets import TrainingDataset, EvaluationDataset
 from updown.models import UpDownCaptioner
 from updown.types import Prediction
 from updown.utils.checkpointing import CheckpointManager
@@ -116,7 +116,7 @@ if __name__ == "__main__":
     # Make dataloader cyclic for sampling batches perpetually.
     train_dataloader = cycle(train_dataloader, device)
 
-    val_dataset = ValidationDataset(
+    val_dataset = EvaluationDataset(
         image_features_h5path=_C.DATA.VAL_FEATURES, in_memory=_A.in_memory
     )
     # Use a smaller batch during validation (accounting beam size) to fit in memory.
@@ -200,7 +200,7 @@ if __name__ == "__main__":
 
         # Log loss and learning rate to tensorboard.
         tensorboard_writer.add_scalar("loss", batch_loss, iteration)
-        tensorboard_writer.add_scalar("lr", optimizer.param_groups[0]["lr"], iteration)
+        tensorboard_writer.add_scalar("learning_rate", optimizer.param_groups[0]["lr"], iteration)
 
         # ----------------------------------------------------------------------------------------
         #   VALIDATION
@@ -241,13 +241,13 @@ if __name__ == "__main__":
             # Get evaluation metrics for nocaps val phase from EvalAI.
             # keys: {"B1", "B2", "B3", "B4", "METEOR", "ROUGE-L", "CIDEr", "SPICE"}
             # In each of these, keys:  {"in-domain", "near-domain", "out-domain", "entire"}
-            evaluation_metrics = evaluator.evaluate(predictions)
+            evaluation_metrics = evaluator.evaluate(predictions, iteration)
 
             # Print and log all evaluation metrics to tensorboard.
             print(f"Evaluation metrics after iteration {iteration}:")
             for metric_name in evaluation_metrics:
                 tensorboard_writer.add_scalars(
-                    f"val/{metric_name}", evaluation_metrics[metric_name], iteration
+                    f"metrics/{metric_name}", evaluation_metrics[metric_name], iteration
                 )
                 print(f"\t{metric_name}:")
                 for domain in evaluation_metrics[metric_name]:

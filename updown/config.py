@@ -175,28 +175,12 @@ class Config(object):
         return self._C.__getattr__(attr)
 
     def __str__(self):
-        return _config_str(self)
+        common_string: str = str(CN({"RANDOM_SEED": self._C.RANDOM_SEED})) + "\n"
+        common_string += str(CN({"DATA": self._C.DATA})) + "\n"
+        common_string += str(CN({"MODEL": self._C.MODEL})) + "\n"
+        common_string += str(CN({"OPTIM": self._C.OPTIM})) + "\n"
+
+        return common_string
 
     def __repr__(self):
         return self._C.__repr__()
-
-
-def _config_str(config: Config) -> str:
-    r"""
-    Collect a subset of config in sensible order (not alphabetical) according to phase. Used by
-    :func:`Config.__str__()`.
-
-    Parameters
-    ----------
-    config: Config
-        A :class:`Config` object which is to be printed.
-    """
-    _C = config
-
-    __C: CN = CN({"RANDOM_SEED": _C.RANDOM_SEED})
-    common_string: str = str(__C) + "\n"
-    common_string += str(CN({"DATA": _C.DATA})) + "\n"
-    common_string += str(CN({"MODEL": _C.MODEL})) + "\n"
-    common_string += str(CN({"OPTIM": _C.OPTIM})) + "\n"
-
-    return common_string

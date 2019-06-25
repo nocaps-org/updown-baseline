@@ -1,3 +1,12 @@
+r"""
+A Reader simply reads data from disk and returns it _almost_ as is. Readers should be
+utilized by PyTorch :class:`~torch.utils.data.Dataset`. Too much of data pre-processing is not
+recommended in the reader, such as tokenizing words to integers, embedding tokens, or passing
+an image through a pre-trained CNN. Each reader must implement at least two methods:
+
+    1. ``__len__`` to return the length of data this Reader can read.
+    2. ``__getitem__`` to return data based on an index or a primary key (such as ``image_id``).
+"""
 import json
 from typing import Any, Dict, List, Tuple, Union
 
@@ -26,13 +35,13 @@ class ImageFeaturesReader(object):
     ----------
     features_h5path : str
         Path to an H5 file containing image ids and features corresponding to one of the four
-        ``split``s used: "coco_train2017", "coco_val2017", "nocaps_val", "nocaps_test".
+        splits used: "coco_train2017", "coco_val2017", "nocaps_val", "nocaps_test".
     in_memory : bool
         Whether to load the features in memory. Beware, these files are sometimes tens of GBs
         in size. Set this to true if you have sufficient RAM.
     """
 
-    def __init__(self, features_h5path: str, in_memory: bool = False):
+    def __init__(self, features_h5path: str, in_memory: bool = False) -> None:
         self.features_h5path = features_h5path
         self._in_memory = in_memory
 
@@ -44,6 +53,8 @@ class ImageFeaturesReader(object):
         if self._in_memory:
             print(f"Loading image features from {self.features_h5path}...")
             features_h5 = h5py.File(self.features_h5path, "r")
+
+            # If loading all features in memory at once, keep a mapping of image id to features.
             for index in tqdm(range(features_h5["image_id"].shape[0])):
                 self._map[features_h5["image_id"][index]] = features_h5["features"][index]
             features_h5.close()
@@ -51,14 +62,17 @@ class ImageFeaturesReader(object):
         else:
             self.features_h5 = h5py.File(self.features_h5path, "r")
             image_id_np = np.array(self.features_h5["image_id"])
+
+            # If not loading all features in memory at once, just keep a mapping of image id to
+            # index of features in H5 file.
             self._map = {
                 image_id_np[index]: index for index in range(image_id_np.shape[0])
             }
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self._map)
 
-    def __getitem__(self, image_id: int):
+    def __getitem__(self, image_id: int) -> np.ndarray:
         if self._in_memory:
             return self._map[image_id]
         else:
@@ -68,7 +82,16 @@ class ImageFeaturesReader(object):
 
 
 class CocoCaptionsReader(object):
-    def __init__(self, captions_jsonpath: str):
+    r"""
+    A reader for annotation files containing training captions. These are JSON files in COCO
+    format.
+
+    Parameters
+    ----------
+    captions_jsonpath : str
+        Path to a JSON file containing training captions in COCO format (COCO train2017 usually).
+    """
+    def __init__(self, captions_jsonpath: str) -> None:
         self._captions_jsonpath = captions_jsonpath
 
         with open(self._captions_jsonpath) as cap:

@@ -11,9 +11,10 @@ from tqdm import tqdm
 from allennlp.data import Vocabulary
 
 from updown.config import Config
-from updown.data.datasets import InferenceDataset
+from updown.data.datasets import EvaluationDataset
 from updown.models import UpDownCaptioner
 from updown.types import Prediction
+from updown.utils.evalai import NocapsEvaluator
 
 
 parser = argparse.ArgumentParser(
@@ -45,6 +46,9 @@ parser.add_argument(
     "--checkpoint-path", required=True, help="Path to load checkpoint and run inference on."
 )
 parser.add_argument("--output-path", required=True, help="Path to save predictions (as a JSON).")
+parser.add_argument(
+    "--evalai-submit", action="store_true", help="Whether to submit the predictions to EvalAI."
+)
 
 
 if __name__ == "__main__":
@@ -79,11 +83,15 @@ if __name__ == "__main__":
 
     vocabulary = Vocabulary.from_files(_C.DATA.VOCABULARY)
 
-    test_dataset = InferenceDataset(
+    eval_dataset = EvaluationDataset(
         image_features_h5path=_C.DATA.TEST_FEATURES, in_memory=_A.in_memory
     )
-    test_dataloader = DataLoader(
-        test_dataset, batch_size=_C.OPTIM.BATCH_SIZE, shuffle=False, num_workers=_A.cpu_workers
+    eval_dataloader = DataLoader(
+        eval_dataset,
+        batch_size=_C.OPTIM.BATCH_SIZE // _C.MODEL.BEAM_SIZE,
+        shuffle=False,
+        num_workers=_A.cpu_workers,
+        collate_fn=eval_dataset.collate_fn,
     )
 
     model = UpDownCaptioner(
@@ -110,7 +118,7 @@ if __name__ == "__main__":
 
     predictions: List[Prediction] = []
 
-    for batch in tqdm(test_dataloader):
+    for batch in tqdm(eval_dataloader):
 
         # keys: {"image_id", "image_features"}
         batch = {key: value.to(device) for key, value in batch.items()}
@@ -134,3 +142,13 @@ if __name__ == "__main__":
         print(predictions[k]["image_id"], predictions[k]["caption"])
 
     json.dump(predictions, open(_A.output_path, "w"))
+
+    if _A.evalai_submit:
+        evaluator = NocapsEvaluator("test" if "test" in _C.DATA.TEST_FEATURES else "val")
+        evaluation_metrics = evaluator.evaluate(predictions)
+
+        print(f"Evaluation metrics for checkpoint {_A.checkpoint_path}:")
+        for metric_name in evaluation_metrics:
+            print(f"\t{metric_name}:")
+            for domain in evaluation_metrics[metric_name]:
+                print(f"\t\t{domain}:", evaluation_metrics[metric_name][domain])

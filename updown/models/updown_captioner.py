@@ -8,10 +8,43 @@ from allennlp.data import Vocabulary
 from allennlp.nn.beam_search import BeamSearch
 from allennlp.nn.util import add_sentence_boundary_token_ids, sequence_cross_entropy_with_logits
 
-from updown.modules.updown_cell import UpDownCell
+from updown.modules import UpDownCell
 
 
 class UpDownCaptioner(nn.Module):
+    r"""
+    Image captioning model using bottom-up top-down attention, as in
+    `Anderson et al. 2017 <https://arxiv.org/abs/1707.07998>`. At training time, this model
+    maximizes the likelihood of ground truth caption, given image features. At inference time,
+    given image features, captions are decoded using beam search.
+
+    Extended Summary
+    ----------------
+    This captioner is basically a recurrent language model for caption sequences. Internally, it
+    runs :class:`~updown.modules.updown_cell.UpDownCell` for multiple time-steps. If this class is
+    analogous to an :class:`~torch.nn.LSTM`, then :class:`~updown.modules.updown_cell.UpDownCell`
+    would be analogous to :class:`~torch.nn.LSTMCell`.
+
+    Parameters
+    ----------
+    vocabulary: allennlp.data.Vocabulary
+        AllenNLP’s vocabulary containing token to index mapping for captions vocabulary.
+    image_feature_size: int
+        Size of the bottom-up image features.
+    embedding_size: int
+        Size of the word embedding input to the captioner.
+    hidden_size: int
+        Size of the hidden / cell states of attention LSTM and language LSTM of the captioner.
+    attention_projection_size: int
+        Size of the projected image and textual features before computing bottom-up top-down
+        attention weights.
+    max_caption_length: int, optional (default = 20)
+        Maximum length of caption sequences for language modeling. Captions longer than this will
+        be truncated to maximum length.
+    beam_size: int, optional (default = 1)
+        Beam size for finding the most likely caption during decoding time (evaluation).
+    """
+
     def __init__(
         self,
         vocabulary: Vocabulary,
@@ -23,19 +56,15 @@ class UpDownCaptioner(nn.Module):
         beam_size: int = 1,
     ) -> None:
         super().__init__()
+        self._vocabulary = vocabulary
 
         self.image_feature_size = image_feature_size
         self.embedding_size = embedding_size
         self.hidden_size = hidden_size
         self.attention_projection_size = attention_projection_size
 
-        self._vocabulary = vocabulary
-        self._max_caption_length = max_caption_length
-
-        # Short hand notations for convenience
+        # Short hand variable names for convenience
         vocab_size = vocabulary.get_vocab_size()
-
-        # Short hand variable names for convenience.
         self._pad_index = vocabulary.get_token_index("@@UNKNOWN@@")
         self._boundary_index = vocabulary.get_token_index("@@BOUNDARY@@")
 
@@ -50,8 +79,6 @@ class UpDownCaptioner(nn.Module):
         self._output_layer = nn.Linear(hidden_size, vocab_size)
         self._log_softmax = nn.LogSoftmax(dim=1)
 
-        self._caption_loss = nn.CrossEntropyLoss(ignore_index=self._pad_index)
-
         # We use beam search to find the most likely caption during inference.
         self._beam_size = beam_size
         self._beam_search = BeamSearch(
@@ -60,10 +87,32 @@ class UpDownCaptioner(nn.Module):
             beam_size=beam_size,
             per_node_beam_size=beam_size // 2,
         )
+        self._max_caption_length = max_caption_length
 
     def forward(
-        self, image_features: torch.FloatTensor, caption_tokens: Optional[torch.LongTensor] = None
-    ):
+        self, image_features: torch.Tensor, caption_tokens: Optional[torch.Tensor] = None
+    ) -> Dict[str, torch.Tensor]:
+        r"""
+        Given bottom-up image features, maximize the likelihood of paired captions during
+        training. During evaluation, decode captions given image features using beam search.
+
+        Parameters
+        ----------
+        image_features: torch.Tensor
+            A tensor of shape ``(batch_size, num_boxes * image_feature_size)``. ``num_boxes`` for
+            each instance in a batch might be different. Instances with lesser boxes are padded
+            with zeros up to ``num_boxes``.
+        caption_tokens: torch.Tensor, optional (default = None)
+            A tensor of shape ``(batch_size, max_caption_length)`` of tokenized captions. This
+            tensor does not contain ``@@BOUNDARY@@`` tokens yet. Captions are not provided
+            during evaluation.
+
+        Returns
+        -------
+        Dict[str, torch.Tensor]
+            Decoded captions and/or per-instance cross entropy loss, dict with keys either
+            ``{"predictions"}`` or ``{"loss"}``.
+        """
 
         # shape: (batch_size, num_boxes * image_feature_size) for adaptive features.
         # shape: (batch_size, num_boxes, image_feature_size) for fixed features.
@@ -138,10 +187,26 @@ class UpDownCaptioner(nn.Module):
 
     def _decode_step(
         self,
-        image_features: torch.FloatTensor,
-        previous_predictions: torch.LongTensor,
-        states: Optional[Dict[str, torch.FloatTensor]] = None,
-    ) -> Tuple[torch.FloatTensor, Dict[str, torch.FloatTensor]]:
+        image_features: torch.Tensor,
+        previous_predictions: torch.Tensor,
+        states: Optional[Dict[str, torch.Tensor]] = None,
+    ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor]]:
+        r"""
+        Given image features, tokens predicted at previous time-step and LSTM states of the
+        :class:`~updown.modules.updown_cell.UpDownCell`, take a decoding step. This is also
+        called by the beam search class.
+
+        Parameters
+        ----------
+        image_features: torch.Tensor
+            A tensor of shape ``(batch_size, num_boxes, image_feature_size)``.
+        previous_predictions: torch.Tensor
+            A tensor of shape ``(batch_size, )`` containing tokens predicted at previous
+            time-step -- one for each instances in a batch.
+        states: [Dict[str, torch.Tensor], optional (default = None)
+            LSTM states of the :class:`~updown.modules.updown_cell.UpDownCell`. These are
+            initialized as zero tensors if not provided (at first time-step).
+        """
 
         # Expand and repeat image features while doing beam search (during inference).
         if not self.training and image_features.size(0) != previous_predictions.size(0):
@@ -176,8 +241,31 @@ class UpDownCaptioner(nn.Module):
         return outputs, states  # type: ignore
 
     def _get_loss(
-        self, logits: torch.FloatTensor, targets: torch.LongTensor, target_mask: torch.LongTensor
-    ):
+        self, logits: torch.Tensor, targets: torch.Tensor, target_mask: torch.Tensor
+    ) -> torch.Tensor:
+        r"""
+        Compute cross entropy loss of predicted caption (logits) w.r.t. target caption. The cross
+        entropy loss of caption is cross entropy loss at each time-step, summed.
+
+        Parameters
+        ----------
+        logits: torch.Tensor
+            A tensor of shape ``(batch_size, max_caption_length - 1, vocab_size)`` containing
+            unnormalized log-probabilities of predicted captions.
+        targets: torch.Tensor
+            A tensor of shape ``(batch_size, max_caption_length - 1)`` of tokenized target
+            captions.
+        target_mask: torch.Tensor
+            A mask over target captions, elements where mask is zero are ignored from loss
+            computation. Here, we ignore ``@@UNKNOWN@@`` token (and hence padding tokens too
+            because they are basically the same).
+
+        Returns
+        -------
+        torch.Tensor
+            A tensor of shape ``(batch_size, )`` containing cross entropy loss of captions, summed
+            across time-steps.
+        """
 
         # shape: (batch_size, )
         target_lengths = torch.sum(target_mask, dim=-1).float()

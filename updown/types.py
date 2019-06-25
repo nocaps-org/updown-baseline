@@ -21,14 +21,14 @@ TrainingBatch = TypedDict(
     },
 )
 
-# Type hint for objects returned by ``ValidationDataset.__getitem__``.
-ValidationInstance = TypedDict(
-    "ValidationInstance", {"image_id": int, "image_features": np.ndarray}
+# Type hint for objects returned by ``EvaluationDataset.__getitem__``.
+EvaluationInstance = TypedDict(
+    "EvaluationInstance", {"image_id": int, "image_features": np.ndarray}
 )
 
-# Type hint for objects returned by ``ValidationDataset.collate_fn``.
-ValidationBatch = TypedDict(
-    "ValidationBatch", {"image_id": torch.LongTensor, "image_features": torch.FloatTensor}
+# Type hint for objects returned by ``EvaluationDataset.collate_fn``.
+EvaluationBatch = TypedDict(
+    "EvaluationBatch", {"image_id": torch.LongTensor, "image_features": torch.FloatTensor}
 )
 
 Prediction = TypedDict(

@@ -1,0 +1,180 @@
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+  <head>
+    <meta charset="utf-8" />
+
+    <!-- Global site tag (gtag.js) - Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=UA-120523111-2"></script>
+    <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'UA-120523111-2');
+    </script>
+
+    <link href="https://fonts.googleapis.com/css?family=Inconsolata&display=swap" rel="stylesheet">
+
+
+    <title>updown.utils.checkpointing &#8212; updown 1.0.0 documentation</title>
+
+    <link rel="stylesheet" href="../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="../_static/language_data.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="updown.utils.common" href="utils.common.html" />
+    <link rel="prev" title="updown.utils" href="utils.html" />
+   
+  <link rel="stylesheet" href="../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="module-updown.utils.checkpointing">
+<span id="updown-utils-checkpointing"></span><h1>updown.utils.checkpointing<a class="headerlink" href="#module-updown.utils.checkpointing" title="Permalink to this headline">¶</a></h1>
+<dl class="class">
+<dt id="updown.utils.checkpointing.CheckpointManager">
+<em class="property">class </em><code class="sig-prename descclassname">updown.utils.checkpointing.</code><code class="sig-name descname">CheckpointManager</code><span class="sig-paren">(</span><em class="sig-param">models: Union[torch.nn.modules.module.Module, Dict[str, torch.nn.modules.module.Module]], optimizer: Type[torch.optim.optimizer.Optimizer], serialization_dir: str, mode: str = 'max', filename_prefix: str = 'checkpoint'</em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/nocaps-org/updown-baseline/blob/master/updown/utils/checkpointing.py#L9-L112"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#updown.utils.checkpointing.CheckpointManager" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>A <a class="reference internal" href="#updown.utils.checkpointing.CheckpointManager" title="updown.utils.checkpointing.CheckpointManager"><code class="xref py py-class docutils literal notranslate"><span class="pre">CheckpointManager</span></code></a> periodically serializes models and optimizer as .pth files during
+training, and keeps track of best performing checkpoint based on an observed metric.</p>
+<p>It saves state dicts of models and optimizer as <code class="docutils literal notranslate"><span class="pre">.pth</span></code> files in a specified directory. This
+class closely follows the API of PyTorch optimizers and learning rate schedulers.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>models: Dict[str, torch.nn.Module]</strong></dt><dd><p>Models which need to be serialized as a checkpoint.</p>
+</dd>
+<dt><strong>optimizer: torch.optim.Optimizer</strong></dt><dd><p>Optimizer which needs to be serialized as a checkpoint.</p>
+</dd>
+<dt><strong>serialization_dir: str</strong></dt><dd><p>Path to an empty or non-existent directory to save checkpoints.</p>
+</dd>
+<dt><strong>mode: str, optional (default=”max”)</strong></dt><dd><p>One of <code class="docutils literal notranslate"><span class="pre">min</span></code>, <code class="docutils literal notranslate"><span class="pre">max</span></code>. In <code class="docutils literal notranslate"><span class="pre">min</span></code> mode, best checkpoint will be recorded when metric
+hits a lower value; in <cite>max</cite> mode it will be recorded when metric hits a higher value.</p>
+</dd>
+<dt><strong>filename_prefix: str, optional (default=”checkpoint”)</strong></dt><dd><p>Prefix of the to-be-saved checkpoint files.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>For <a class="reference external" href="https://pytorch.org/docs/stable/nn.html#torch.nn.DataParallel" title="(in PyTorch vmaster (1.1.0 ))"><code class="xref py py-class docutils literal notranslate"><span class="pre">DataParallel</span></code></a> objects, <code class="docutils literal notranslate"><span class="pre">.module.state_dict()</span></code> is called instead of
+<code class="docutils literal notranslate"><span class="pre">.state_dict()</span></code>.</p>
+<p class="rubric">Examples</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">model</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">optimizer</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">SGD</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">parameters</span><span class="p">())</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">ckpt_manager</span> <span class="o">=</span> <span class="n">CheckpointManager</span><span class="p">({</span><span class="s2">&quot;model&quot;</span><span class="p">:</span> <span class="n">model</span><span class="p">},</span> <span class="n">optimizer</span><span class="p">,</span> <span class="s2">&quot;/tmp/ckpt&quot;</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;min&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">num_epochs</span> <span class="o">=</span> <span class="mi">20</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">for</span> <span class="n">epoch</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_epochs</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="n">train</span><span class="p">(</span><span class="n">model</span><span class="p">)</span>
+<span class="gp">... </span>    <span class="n">val_loss</span> <span class="o">=</span> <span class="n">validate</span><span class="p">(</span><span class="n">model</span><span class="p">)</span>
+<span class="gp">... </span>    <span class="n">ckpt_manager</span><span class="o">.</span><span class="n">step</span><span class="p">(</span><span class="n">val_loss</span><span class="p">,</span> <span class="n">epoch</span><span class="p">)</span>
+</pre></div>
+</div>
+<dl class="method">
+<dt id="updown.utils.checkpointing.CheckpointManager.step">
+<code class="sig-name descname">step</code><span class="sig-paren">(</span><em class="sig-param">self, metric:Union[float, torch.Tensor], epoch_or_iteration:int</em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/nocaps-org/updown-baseline/blob/master/updown/utils/checkpointing.py#L81-L112"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#updown.utils.checkpointing.CheckpointManager.step" title="Permalink to this definition">¶</a></dt>
+<dd><p>Serialize checkpoint and update best checkpoint based on metric and mode.</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../index.html">updown</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="config.html">updown.config</a></li>
+<li class="toctree-l1"><a class="reference internal" href="data.html">updown.data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="models.html">updown.models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="modules.html">updown.modules</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="utils.html">updown.utils</a><ul class="current">
+<li class="toctree-l2 current"><a class="current reference internal" href="#">updown.utils.checkpointing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="utils.common.html">updown.utils.common</a></li>
+<li class="toctree-l2"><a class="reference internal" href="utils.evalai.html">updown.utils.evalai</a></li>
+</ul>
+</li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../index.html">Documentation overview</a><ul>
+  <li><a href="utils.html">updown.utils</a><ul>
+      <li>Previous: <a href="utils.html" title="previous chapter">updown.utils</a></li>
+      <li>Next: <a href="utils.common.html" title="next chapter">updown.utils.common</a></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2019, nocaps team.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 2.1.0</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="../_sources/updown/utils.checkpointing.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

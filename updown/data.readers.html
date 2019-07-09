@@ -1,0 +1,188 @@
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+  <head>
+    <meta charset="utf-8" />
+
+    <!-- Global site tag (gtag.js) - Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=UA-120523111-2"></script>
+    <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'UA-120523111-2');
+    </script>
+
+    <link href="https://fonts.googleapis.com/css?family=Inconsolata&display=swap" rel="stylesheet">
+
+
+    <title>updown.data.readers &#8212; updown 1.0.0 documentation</title>
+
+    <link rel="stylesheet" href="../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="../_static/language_data.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="updown.models" href="models.html" />
+    <link rel="prev" title="updown.data.datasets" href="data.datasets.html" />
+   
+  <link rel="stylesheet" href="../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="module-updown.data.readers">
+<span id="updown-data-readers"></span><h1>updown.data.readers<a class="headerlink" href="#module-updown.data.readers" title="Permalink to this headline">¶</a></h1>
+<p>A Reader simply reads data from disk and returns it _almost_ as is. Readers should be
+utilized by PyTorch <a class="reference external" href="https://pytorch.org/docs/stable/data.html#torch.utils.data.Dataset" title="(in PyTorch vmaster (1.1.0 ))"><code class="xref py py-class docutils literal notranslate"><span class="pre">Dataset</span></code></a>. Too much of data pre-processing is not
+recommended in the reader, such as tokenizing words to integers, embedding tokens, or passing
+an image through a pre-trained CNN. Each reader must implement at least two methods:</p>
+<blockquote>
+<div><ol class="arabic simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">__len__</span></code> to return the length of data this Reader can read.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">__getitem__</span></code> to return data based on an index or a primary key (such as <code class="docutils literal notranslate"><span class="pre">image_id</span></code>).</p></li>
+</ol>
+</div></blockquote>
+<dl class="class">
+<dt id="updown.data.readers.ImageFeaturesReader">
+<em class="property">class </em><code class="sig-prename descclassname">updown.data.readers.</code><code class="sig-name descname">ImageFeaturesReader</code><span class="sig-paren">(</span><em class="sig-param">features_h5path: str</em>, <em class="sig-param">in_memory: bool = False</em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/nocaps-org/updown-baseline/blob/master/updown/data/readers.py#L19-L81"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#updown.data.readers.ImageFeaturesReader" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>A reader for H5 files containing pre-extracted image features. A typical image features file
+should have at least two H5 datasets, named <code class="docutils literal notranslate"><span class="pre">image_id</span></code> and <code class="docutils literal notranslate"><span class="pre">features</span></code>. It may optionally
+have other H5 datasets, such as <code class="docutils literal notranslate"><span class="pre">boxes</span></code> (for bounding box coordinates), <code class="docutils literal notranslate"><span class="pre">width</span></code> and
+<code class="docutils literal notranslate"><span class="pre">height</span></code> for image size, and others. This reader only reads image features, because our
+UpDown captioner baseline does not require anything other than image features.</p>
+<p>Example of an h5 file:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">image_bottomup_features</span><span class="o">.</span><span class="n">h5</span>
+<span class="o">|---</span> <span class="s2">&quot;image_id&quot;</span> <span class="p">[</span><span class="n">shape</span><span class="p">:</span> <span class="p">(</span><span class="n">num_images</span><span class="p">,</span> <span class="p">)]</span>
+<span class="o">|---</span> <span class="s2">&quot;features&quot;</span> <span class="p">[</span><span class="n">shape</span><span class="p">:</span> <span class="p">(</span><span class="n">num_images</span><span class="p">,</span> <span class="n">num_boxes</span><span class="p">,</span> <span class="n">feature_size</span><span class="p">)]</span>
+<span class="o">+---</span> <span class="o">.</span><span class="n">attrs</span> <span class="p">{</span><span class="s2">&quot;split&quot;</span><span class="p">:</span> <span class="s2">&quot;coco_train2017&quot;</span><span class="p">}</span>
+</pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>features_h5path</strong><span class="classifier">str</span></dt><dd><p>Path to an H5 file containing image ids and features corresponding to one of the four
+splits used: “coco_train2017”, “coco_val2017”, “nocaps_val”, “nocaps_test”.</p>
+</dd>
+<dt><strong>in_memory</strong><span class="classifier">bool</span></dt><dd><p>Whether to load the features in memory. Beware, these files are sometimes tens of GBs
+in size. Set this to true if you have sufficient RAM.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="class">
+<dt id="updown.data.readers.CocoCaptionsReader">
+<em class="property">class </em><code class="sig-prename descclassname">updown.data.readers.</code><code class="sig-name descname">CocoCaptionsReader</code><span class="sig-paren">(</span><em class="sig-param">captions_jsonpath: str</em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/nocaps-org/updown-baseline/blob/master/updown/data/readers.py#L84-L123"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#updown.data.readers.CocoCaptionsReader" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>A reader for annotation files containing training captions. These are JSON files in COCO
+format.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>captions_jsonpath</strong><span class="classifier">str</span></dt><dd><p>Path to a JSON file containing training captions in COCO format (COCO train2017 usually).</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../index.html">updown</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="config.html">updown.config</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="data.html">updown.data</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="data.datasets.html">updown.data.datasets</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">updown.data.readers</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="models.html">updown.models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="modules.html">updown.modules</a></li>
+<li class="toctree-l1"><a class="reference internal" href="utils.html">updown.utils</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../index.html">Documentation overview</a><ul>
+  <li><a href="data.html">updown.data</a><ul>
+      <li>Previous: <a href="data.datasets.html" title="previous chapter">updown.data.datasets</a></li>
+      <li>Next: <a href="models.html" title="next chapter">updown.models</a></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2019, nocaps team.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 2.1.0</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="../_sources/updown/data.readers.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

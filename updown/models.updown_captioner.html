@@ -1,0 +1,247 @@
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+  <head>
+    <meta charset="utf-8" />
+
+    <!-- Global site tag (gtag.js) - Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=UA-120523111-2"></script>
+    <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'UA-120523111-2');
+    </script>
+
+    <link href="https://fonts.googleapis.com/css?family=Inconsolata&display=swap" rel="stylesheet">
+
+
+    <title>updown.models.updown_captioner &#8212; updown 1.0.0 documentation</title>
+
+    <link rel="stylesheet" href="../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="../_static/language_data.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="updown.modules" href="modules.html" />
+    <link rel="prev" title="updown.models" href="models.html" />
+   
+  <link rel="stylesheet" href="../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="module-updown.models.updown_captioner">
+<span id="updown-models-updown-captioner"></span><h1>updown.models.updown_captioner<a class="headerlink" href="#module-updown.models.updown_captioner" title="Permalink to this headline">¶</a></h1>
+<dl class="class">
+<dt id="updown.models.updown_captioner.UpDownCaptioner">
+<em class="property">class </em><code class="sig-prename descclassname">updown.models.updown_captioner.</code><code class="sig-name descname">UpDownCaptioner</code><span class="sig-paren">(</span><em class="sig-param">vocabulary: allennlp.data.vocabulary.Vocabulary</em>, <em class="sig-param">image_feature_size: int</em>, <em class="sig-param">embedding_size: int</em>, <em class="sig-param">hidden_size: int</em>, <em class="sig-param">attention_projection_size: int</em>, <em class="sig-param">max_caption_length: int = 20</em>, <em class="sig-param">beam_size: int = 1</em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/nocaps-org/updown-baseline/blob/master/updown/models/updown_captioner.py#L14-L277"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#updown.models.updown_captioner.UpDownCaptioner" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code></p>
+<p>Image captioning model using bottom-up top-down attention, as in
+<cite>Anderson et al. 2017 &lt;https://arxiv.org/abs/1707.07998&gt;</cite>. At training time, this model
+maximizes the likelihood of ground truth caption, given image features. At inference time,
+given image features, captions are decoded using beam search.</p>
+<p>This captioner is basically a recurrent language model for caption sequences. Internally, it
+runs <a class="reference internal" href="modules.updown_cell.html#updown.modules.updown_cell.UpDownCell" title="updown.modules.updown_cell.UpDownCell"><code class="xref py py-class docutils literal notranslate"><span class="pre">UpDownCell</span></code></a> for multiple time-steps. If this class is
+analogous to an <a class="reference external" href="https://pytorch.org/docs/stable/nn.html#torch.nn.LSTM" title="(in PyTorch vmaster (1.1.0 ))"><code class="xref py py-class docutils literal notranslate"><span class="pre">LSTM</span></code></a>, then <a class="reference internal" href="modules.updown_cell.html#updown.modules.updown_cell.UpDownCell" title="updown.modules.updown_cell.UpDownCell"><code class="xref py py-class docutils literal notranslate"><span class="pre">UpDownCell</span></code></a>
+would be analogous to <a class="reference external" href="https://pytorch.org/docs/stable/nn.html#torch.nn.LSTMCell" title="(in PyTorch vmaster (1.1.0 ))"><code class="xref py py-class docutils literal notranslate"><span class="pre">LSTMCell</span></code></a>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>vocabulary: allennlp.data.Vocabulary</strong></dt><dd><p>AllenNLP’s vocabulary containing token to index mapping for captions vocabulary.</p>
+</dd>
+<dt><strong>image_feature_size: int</strong></dt><dd><p>Size of the bottom-up image features.</p>
+</dd>
+<dt><strong>embedding_size: int</strong></dt><dd><p>Size of the word embedding input to the captioner.</p>
+</dd>
+<dt><strong>hidden_size: int</strong></dt><dd><p>Size of the hidden / cell states of attention LSTM and language LSTM of the captioner.</p>
+</dd>
+<dt><strong>attention_projection_size: int</strong></dt><dd><p>Size of the projected image and textual features before computing bottom-up top-down
+attention weights.</p>
+</dd>
+<dt><strong>max_caption_length: int, optional (default = 20)</strong></dt><dd><p>Maximum length of caption sequences for language modeling. Captions longer than this will
+be truncated to maximum length.</p>
+</dd>
+<dt><strong>beam_size: int, optional (default = 1)</strong></dt><dd><p>Beam size for finding the most likely caption during decoding time (evaluation).</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<dl class="method">
+<dt id="updown.models.updown_captioner.UpDownCaptioner.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">self</em>, <em class="sig-param">image_features:torch.Tensor</em>, <em class="sig-param">caption_tokens:Union[torch.Tensor</em>, <em class="sig-param">NoneType]=None</em><span class="sig-paren">)</span> &#x2192; Dict[str, torch.Tensor]<a class="reference external" href="https://github.com/nocaps-org/updown-baseline/blob/master/updown/models/updown_captioner.py#L92-L186"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#updown.models.updown_captioner.UpDownCaptioner.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Given bottom-up image features, maximize the likelihood of paired captions during
+training. During evaluation, decode captions given image features using beam search.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>image_features: torch.Tensor</strong></dt><dd><p>A tensor of shape <code class="docutils literal notranslate"><span class="pre">(batch_size,</span> <span class="pre">num_boxes</span> <span class="pre">*</span> <span class="pre">image_feature_size)</span></code>. <code class="docutils literal notranslate"><span class="pre">num_boxes</span></code> for
+each instance in a batch might be different. Instances with lesser boxes are padded
+with zeros up to <code class="docutils literal notranslate"><span class="pre">num_boxes</span></code>.</p>
+</dd>
+<dt><strong>caption_tokens: torch.Tensor, optional (default = None)</strong></dt><dd><p>A tensor of shape <code class="docutils literal notranslate"><span class="pre">(batch_size,</span> <span class="pre">max_caption_length)</span></code> of tokenized captions. This
+tensor does not contain <code class="docutils literal notranslate"><span class="pre">&#64;&#64;BOUNDARY&#64;&#64;</span></code> tokens yet. Captions are not provided
+during evaluation.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt>Dict[str, torch.Tensor]</dt><dd><p>Decoded captions and/or per-instance cross entropy loss, dict with keys either
+<code class="docutils literal notranslate"><span class="pre">{&quot;predictions&quot;}</span></code> or <code class="docutils literal notranslate"><span class="pre">{&quot;loss&quot;}</span></code>.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="updown.models.updown_captioner.UpDownCaptioner._decode_step">
+<code class="sig-name descname">_decode_step</code><span class="sig-paren">(</span><em class="sig-param">self, image_features:torch.Tensor, previous_predictions:torch.Tensor, states:Union[Dict[str, torch.Tensor], NoneType]=None</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, Dict[str, torch.Tensor]]<a class="reference external" href="https://github.com/nocaps-org/updown-baseline/blob/master/updown/models/updown_captioner.py#L188-L241"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#updown.models.updown_captioner.UpDownCaptioner._decode_step" title="Permalink to this definition">¶</a></dt>
+<dd><p>Given image features, tokens predicted at previous time-step and LSTM states of the
+<a class="reference internal" href="modules.updown_cell.html#updown.modules.updown_cell.UpDownCell" title="updown.modules.updown_cell.UpDownCell"><code class="xref py py-class docutils literal notranslate"><span class="pre">UpDownCell</span></code></a>, take a decoding step. This is also
+called by the beam search class.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>image_features: torch.Tensor</strong></dt><dd><p>A tensor of shape <code class="docutils literal notranslate"><span class="pre">(batch_size,</span> <span class="pre">num_boxes,</span> <span class="pre">image_feature_size)</span></code>.</p>
+</dd>
+<dt><strong>previous_predictions: torch.Tensor</strong></dt><dd><p>A tensor of shape <code class="docutils literal notranslate"><span class="pre">(batch_size,</span> <span class="pre">)</span></code> containing tokens predicted at previous
+time-step – one for each instances in a batch.</p>
+</dd>
+<dt><strong>states: [Dict[str, torch.Tensor], optional (default = None)</strong></dt><dd><p>LSTM states of the <a class="reference internal" href="modules.updown_cell.html#updown.modules.updown_cell.UpDownCell" title="updown.modules.updown_cell.UpDownCell"><code class="xref py py-class docutils literal notranslate"><span class="pre">UpDownCell</span></code></a>. These are
+initialized as zero tensors if not provided (at first time-step).</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="updown.models.updown_captioner.UpDownCaptioner._get_loss">
+<code class="sig-name descname">_get_loss</code><span class="sig-paren">(</span><em class="sig-param">self</em>, <em class="sig-param">logits:torch.Tensor</em>, <em class="sig-param">targets:torch.Tensor</em>, <em class="sig-param">target_mask:torch.Tensor</em><span class="sig-paren">)</span> &#x2192; torch.Tensor<a class="reference external" href="https://github.com/nocaps-org/updown-baseline/blob/master/updown/models/updown_captioner.py#L243-L277"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#updown.models.updown_captioner.UpDownCaptioner._get_loss" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compute cross entropy loss of predicted caption (logits) w.r.t. target caption. The cross
+entropy loss of caption is cross entropy loss at each time-step, summed.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>logits: torch.Tensor</strong></dt><dd><p>A tensor of shape <code class="docutils literal notranslate"><span class="pre">(batch_size,</span> <span class="pre">max_caption_length</span> <span class="pre">-</span> <span class="pre">1,</span> <span class="pre">vocab_size)</span></code> containing
+unnormalized log-probabilities of predicted captions.</p>
+</dd>
+<dt><strong>targets: torch.Tensor</strong></dt><dd><p>A tensor of shape <code class="docutils literal notranslate"><span class="pre">(batch_size,</span> <span class="pre">max_caption_length</span> <span class="pre">-</span> <span class="pre">1)</span></code> of tokenized target
+captions.</p>
+</dd>
+<dt><strong>target_mask: torch.Tensor</strong></dt><dd><p>A mask over target captions, elements where mask is zero are ignored from loss
+computation. Here, we ignore <code class="docutils literal notranslate"><span class="pre">&#64;&#64;UNKNOWN&#64;&#64;</span></code> token (and hence padding tokens too
+because they are basically the same).</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt>torch.Tensor</dt><dd><p>A tensor of shape <code class="docutils literal notranslate"><span class="pre">(batch_size,</span> <span class="pre">)</span></code> containing cross entropy loss of captions, summed
+across time-steps.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../index.html">updown</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="config.html">updown.config</a></li>
+<li class="toctree-l1"><a class="reference internal" href="data.html">updown.data</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="models.html">updown.models</a><ul class="current">
+<li class="toctree-l2 current"><a class="current reference internal" href="#">updown.models.updown_captioner</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="modules.html">updown.modules</a></li>
+<li class="toctree-l1"><a class="reference internal" href="utils.html">updown.utils</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../index.html">Documentation overview</a><ul>
+  <li><a href="models.html">updown.models</a><ul>
+      <li>Previous: <a href="models.html" title="previous chapter">updown.models</a></li>
+      <li>Next: <a href="modules.html" title="next chapter">updown.modules</a></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2019, nocaps team.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 2.1.0</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="../_sources/updown/models.updown_captioner.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

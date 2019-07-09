@@ -1,0 +1,239 @@
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+  <head>
+    <meta charset="utf-8" />
+
+    <!-- Global site tag (gtag.js) - Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=UA-120523111-2"></script>
+    <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'UA-120523111-2');
+    </script>
+
+    <link href="https://fonts.googleapis.com/css?family=Inconsolata&display=swap" rel="stylesheet">
+
+
+    <title>updown.config &#8212; updown 1.0.0 documentation</title>
+
+    <link rel="stylesheet" href="../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="../_static/language_data.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="updown.data" href="data.html" />
+    <link rel="prev" title="UpDown Captioner Baseline for nocaps" href="../index.html" />
+   
+  <link rel="stylesheet" href="../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="module-updown.config">
+<span id="updown-config"></span><h1>updown.config<a class="headerlink" href="#module-updown.config" title="Permalink to this headline">¶</a></h1>
+<p>This module provides package-wide configuration management.</p>
+<dl class="class">
+<dt id="updown.config.Config">
+<em class="property">class </em><code class="sig-prename descclassname">updown.config.</code><code class="sig-name descname">Config</code><span class="sig-paren">(</span><em class="sig-param">config_yaml: str</em>, <em class="sig-param">config_override: List[Any] = []</em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/nocaps-org/updown-baseline/blob/master/updown/config.py#L7-L186"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#updown.config.Config" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>A collection of all the required configuration parameters. This class is a nested dict-like
+structure, with nested keys accessible as attributes. It contains sensible default values for
+all the parameters, which may be overriden by (first) through a YAML file and (second) through
+a list of attributes and values.</p>
+<p>This class definition contains default hyperparameters for the UpDown baseline from our paper.
+Modification of any parameter after instantiating this class is not possible, so you must
+override required parameter values in either through <code class="docutils literal notranslate"><span class="pre">config_yaml</span></code> or <code class="docutils literal notranslate"><span class="pre">config_override</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>config_yaml: str</strong></dt><dd><p>Path to a YAML file containing configuration parameters to override.</p>
+</dd>
+<dt><strong>config_override: List[Any], optional (default= [])</strong></dt><dd><p>A list of sequential attributes and values of parameters to override. This happens after
+overriding from YAML file.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<p>Let a YAML file named “config.yaml” specify these parameters to override:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">RANDOM_SEED</span><span class="p">:</span> <span class="mi">42</span>
+<span class="n">OPTIM</span><span class="p">:</span>
+  <span class="n">BATCH_SIZE</span><span class="p">:</span> <span class="mi">512</span>
+</pre></div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">_C</span> <span class="o">=</span> <span class="n">Config</span><span class="p">(</span><span class="s2">&quot;config.yaml&quot;</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;OPTIM.BATCH_SIZE&quot;</span><span class="p">,</span> <span class="mi">2048</span><span class="p">])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">_C</span><span class="o">.</span><span class="n">RANDOM_SEED</span>  <span class="c1"># default: 0</span>
+<span class="go">42</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">_C</span><span class="o">.</span><span class="n">OPTIM</span><span class="o">.</span><span class="n">BATCH_SIZE</span>  <span class="c1"># default: 150</span>
+<span class="go">2048</span>
+</pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Attributes</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>RANDOM_SEED: 0</strong></dt><dd><p>Random seed for NumPy and PyTorch, important for reproducibility.</p>
+</dd>
+<dt><strong>__________</strong></dt><dd></dd>
+<dt><strong>DATA:</strong></dt><dd><p>Collection of required data paths for training and evaluation. All these are assumed to
+be relative to project root directory. If elsewhere, symlinking is recommended.</p>
+</dd>
+<dt><strong>DATA.VOCABULARY: “data/vocabulary”</strong></dt><dd><p>Path to a directory containing caption vocabulary (readable by AllenNLP).</p>
+</dd>
+<dt><strong>DATA.TRAIN_FEATURES: “data/coco_train2017_resnet101_faster_rcnn_genome_adaptive.h5”</strong></dt><dd><p>Path to an H5 file containing pre-extracted features from COCO train2017 images.</p>
+</dd>
+<dt><strong>DATA.VAL_FEATURES: “data/nocaps_val_resnet101_faster_rcnn_genome_adaptive.h5”</strong></dt><dd><p>Path to an H5 file containing pre-extracted features from nocaps val images.</p>
+</dd>
+<dt><strong>DATA.TEST_FEATURES: “data/nocaps_test_resnet101_faster_rcnn_genome_adaptive.h5”</strong></dt><dd><p>Path to an H5 file containing pre-extracted features from nocaps test images.</p>
+</dd>
+<dt><strong>DATA.TRAIN_CAPTIONS: “data/coco/annotations/captions_train2017.json”</strong></dt><dd><p>Path to a JSON file containing COCO train2017 captions in COCO format.</p>
+</dd>
+<dt><strong>DATA.VAL_CAPTIONS: “data/nocaps/annotations/nocaps_val_image_info.json”</strong></dt><dd><p>Path to a JSON file containing nocaps val image info.
+Captions are not available publicly.</p>
+</dd>
+<dt><strong>DATA.TEST_CAPTIONS: “data/nocaps/annotations/nocaps_test_image_info.json”</strong></dt><dd><p>Path to a JSON file containing nocaps test image info.
+Captions are not available publicly.</p>
+</dd>
+<dt><strong>DATA.MAX_CAPTION_LENGTH: 20</strong></dt><dd><p>Maximum length of caption sequences for language modeling. Captions longer than this will
+be truncated to maximum length.</p>
+</dd>
+<dt><strong>__________</strong></dt><dd></dd>
+<dt><strong>MODEL:</strong></dt><dd><p>Parameters controlling the model architecture of UpDown Captioner.</p>
+</dd>
+<dt><strong>MODEL.IMAGE_FEATURE_SIZE: 2048</strong></dt><dd><p>Size of the bottom-up image features.</p>
+</dd>
+<dt><strong>MODEL.EMBEDDING_SIZE: 1000</strong></dt><dd><p>Size of the word embedding input to the captioner.</p>
+</dd>
+<dt><strong>MODEL.HIDDEN_SIZE: 1200</strong></dt><dd><p>Size of the hidden / cell states of attention LSTM and language LSTM of the captioner.</p>
+</dd>
+<dt><strong>MODEL.ATTENTION_PROJECTION_SIZE: 768</strong></dt><dd><p>Size of the projected image and textual features before computing bottom-up top-down
+attention weights.</p>
+</dd>
+<dt><strong>MODEL.BEAM_SIZE: 5</strong></dt><dd><p>Beam size for finding the most likely caption during decoding time (evaluation).</p>
+</dd>
+<dt><strong>__________</strong></dt><dd></dd>
+<dt><strong>OPTIM:</strong></dt><dd><p>Optimization hyper-parameters, relevant during training a particular phase.</p>
+</dd>
+<dt><strong>OPTIM.BATCH_SIZE: 150</strong></dt><dd><p>Batch size during training and evaluation.</p>
+</dd>
+<dt><strong>OPTIM.NUM_ITERATIONS: 70000</strong></dt><dd><p>Number of iterations to train for, batches are randomly sampled.</p>
+</dd>
+<dt><strong>OPTIM.LR: 0.015</strong></dt><dd><p>Initial learning rate for SGD. This linearly decays to zero till the end of training.</p>
+</dd>
+<dt><strong>OPTIM.MOMENTUM: 0.9</strong></dt><dd><p>Momentum co-efficient for SGD.</p>
+</dd>
+<dt><strong>OPTIM.WEIGHT_DECAY: 0.001</strong></dt><dd><p>Weight decay co-efficient for SGD.</p>
+</dd>
+<dt><strong>OPTIM.CLIP_GRADIENTS</strong></dt><dd><p>Gradient clipping threshold to avoid exploding gradients.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<dl class="method">
+<dt id="updown.config.Config.dump">
+<code class="sig-name descname">dump</code><span class="sig-paren">(</span><em class="sig-param">self</em>, <em class="sig-param">file_path:str</em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/nocaps-org/updown-baseline/blob/master/updown/config.py#L164-L172"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#updown.config.Config.dump" title="Permalink to this definition">¶</a></dt>
+<dd><p>Save config at the specified file path.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>file_path: str</strong></dt><dd><p>(YAML) path to save config at.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../index.html">updown</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">updown.config</a></li>
+<li class="toctree-l1"><a class="reference internal" href="data.html">updown.data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="models.html">updown.models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="modules.html">updown.modules</a></li>
+<li class="toctree-l1"><a class="reference internal" href="utils.html">updown.utils</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../index.html">Documentation overview</a><ul>
+      <li>Previous: <a href="../index.html" title="previous chapter">UpDown Captioner Baseline for <code class="docutils literal notranslate"><span class="pre">nocaps</span></code></a></li>
+      <li>Next: <a href="data.html" title="next chapter">updown.data</a></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2019, nocaps team.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 2.1.0</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="../_sources/updown/config.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

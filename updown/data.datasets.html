@@ -1,0 +1,167 @@
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+  <head>
+    <meta charset="utf-8" />
+
+    <!-- Global site tag (gtag.js) - Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=UA-120523111-2"></script>
+    <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'UA-120523111-2');
+    </script>
+
+    <link href="https://fonts.googleapis.com/css?family=Inconsolata&display=swap" rel="stylesheet">
+
+
+    <title>updown.data.datasets &#8212; updown 1.0.0 documentation</title>
+
+    <link rel="stylesheet" href="../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="../_static/language_data.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="updown.data.readers" href="data.readers.html" />
+    <link rel="prev" title="updown.data" href="data.html" />
+   
+  <link rel="stylesheet" href="../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="module-updown.data.datasets">
+<span id="updown-data-datasets"></span><h1>updown.data.datasets<a class="headerlink" href="#module-updown.data.datasets" title="Permalink to this headline">¶</a></h1>
+<dl class="class">
+<dt id="updown.data.datasets.TrainingDataset">
+<em class="property">class </em><code class="sig-prename descclassname">updown.data.datasets.</code><code class="sig-name descname">TrainingDataset</code><span class="sig-paren">(</span><em class="sig-param">vocabulary: allennlp.data.vocabulary.Vocabulary</em>, <em class="sig-param">captions_jsonpath: str</em>, <em class="sig-param">image_features_h5path: str</em>, <em class="sig-param">max_caption_length: int = 20</em>, <em class="sig-param">in_memory: bool = True</em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/nocaps-org/updown-baseline/blob/master/updown/data/datasets.py#L13-L102"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#updown.data.datasets.TrainingDataset" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.utils.data.dataset.Dataset</span></code></p>
+<p>A PyTorch <cite>:class:`~torch.utils.data.Dataset</cite> providing access to COCO train2017 captions data
+for training <a class="reference internal" href="models.updown_captioner.html#updown.models.updown_captioner.UpDownCaptioner" title="updown.models.updown_captioner.UpDownCaptioner"><code class="xref py py-class docutils literal notranslate"><span class="pre">UpDownCaptioner</span></code></a>. When wrapped with a
+<a class="reference external" href="https://pytorch.org/docs/stable/data.html#torch.utils.data.DataLoader" title="(in PyTorch vmaster (1.1.0 ))"><code class="xref py py-class docutils literal notranslate"><span class="pre">DataLoader</span></code></a>, it provides batches of image features and tokenized
+ground truth captions.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>vocabulary: allennlp.data.Vocabulary</strong></dt><dd><p>AllenNLP’s vocabulary containing token to index mapping for captions vocabulary.</p>
+</dd>
+<dt><strong>captions_jsonpath: str</strong></dt><dd><p>Path to a JSON file containing COCO train2017 caption annotations.</p>
+</dd>
+<dt><strong>image_features_h5path: str</strong></dt><dd><p>Path to an H5 file containing pre-extracted features from COCO train2017 images.</p>
+</dd>
+<dt><strong>max_caption_length: int, optional (default = 20)</strong></dt><dd><p>Maximum length of caption sequences for language modeling. Captions longer than this will
+be truncated to maximum length.</p>
+</dd>
+<dt><strong>in_memory: bool, optional (default = True)</strong></dt><dd><p>Whether to load all image features in memory.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>Use <code class="xref py py-mod docutils literal notranslate"><span class="pre">collate_fn</span></code> when wrapping with a <a class="reference external" href="https://pytorch.org/docs/stable/data.html#torch.utils.data.DataLoader" title="(in PyTorch vmaster (1.1.0 ))"><code class="xref py py-class docutils literal notranslate"><span class="pre">DataLoader</span></code></a>.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="updown.data.datasets.EvaluationDataset">
+<em class="property">class </em><code class="sig-prename descclassname">updown.data.datasets.</code><code class="sig-name descname">EvaluationDataset</code><span class="sig-paren">(</span><em class="sig-param">image_features_h5path: str</em>, <em class="sig-param">in_memory: bool = True</em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/nocaps-org/updown-baseline/blob/master/updown/data/datasets.py#L105-L131"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#updown.data.datasets.EvaluationDataset" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.utils.data.dataset.Dataset</span></code></p>
+</dd></dl>
+
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../index.html">updown</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="config.html">updown.config</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="data.html">updown.data</a><ul class="current">
+<li class="toctree-l2 current"><a class="current reference internal" href="#">updown.data.datasets</a></li>
+<li class="toctree-l2"><a class="reference internal" href="data.readers.html">updown.data.readers</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="models.html">updown.models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="modules.html">updown.modules</a></li>
+<li class="toctree-l1"><a class="reference internal" href="utils.html">updown.utils</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../index.html">Documentation overview</a><ul>
+  <li><a href="data.html">updown.data</a><ul>
+      <li>Previous: <a href="data.html" title="previous chapter">updown.data</a></li>
+      <li>Next: <a href="data.readers.html" title="next chapter">updown.data.readers</a></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2019, nocaps team.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 2.1.0</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="../_sources/updown/data.datasets.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

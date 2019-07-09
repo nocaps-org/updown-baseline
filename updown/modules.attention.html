@@ -1,0 +1,214 @@
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+  <head>
+    <meta charset="utf-8" />
+
+    <!-- Global site tag (gtag.js) - Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=UA-120523111-2"></script>
+    <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'UA-120523111-2');
+    </script>
+
+    <link href="https://fonts.googleapis.com/css?family=Inconsolata&display=swap" rel="stylesheet">
+
+
+    <title>updown.modules.attention &#8212; updown 1.0.0 documentation</title>
+
+    <link rel="stylesheet" href="../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="../_static/language_data.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="updown.modules.updown_cell" href="modules.updown_cell.html" />
+    <link rel="prev" title="updown.modules" href="modules.html" />
+   
+  <link rel="stylesheet" href="../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="module-updown.modules.attention">
+<span id="updown-modules-attention"></span><h1>updown.modules.attention<a class="headerlink" href="#module-updown.modules.attention" title="Permalink to this headline">¶</a></h1>
+<dl class="class">
+<dt id="updown.modules.attention.BottomUpTopDownAttention">
+<em class="property">class </em><code class="sig-prename descclassname">updown.modules.attention.</code><code class="sig-name descname">BottomUpTopDownAttention</code><span class="sig-paren">(</span><em class="sig-param">query_size: int</em>, <em class="sig-param">image_feature_size: int</em>, <em class="sig-param">projection_size: int</em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/nocaps-org/updown-baseline/blob/master/updown/modules/attention.py#L9-L125"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#updown.modules.attention.BottomUpTopDownAttention" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code></p>
+<p>A PyTorch module to compute bottom-up top-down attention
+(<a class="reference external" href="https://arxiv.org/abs/1707.07998">Anderson et al. 2017</a>). Used in
+<a class="reference internal" href="modules.updown_cell.html#updown.modules.updown_cell.UpDownCell" title="updown.modules.updown_cell.UpDownCell"><code class="xref py py-class docutils literal notranslate"><span class="pre">UpDownCell</span></code></a></p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>query_size: int</strong></dt><dd><p>Size of the query vector, typically the output of Attention LSTM in
+<a class="reference internal" href="modules.updown_cell.html#updown.modules.updown_cell.UpDownCell" title="updown.modules.updown_cell.UpDownCell"><code class="xref py py-class docutils literal notranslate"><span class="pre">UpDownCell</span></code></a>.</p>
+</dd>
+<dt><strong>image_feature_size: int</strong></dt><dd><p>Size of the bottom-up image features.</p>
+</dd>
+<dt><strong>projection_size: int</strong></dt><dd><p>Size of the projected image and textual features before computing bottom-up top-down
+attention weights.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<dl class="method">
+<dt id="updown.modules.attention.BottomUpTopDownAttention.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">self</em>, <em class="sig-param">query_vector:torch.Tensor</em>, <em class="sig-param">image_features:torch.Tensor</em>, <em class="sig-param">image_features_mask:Union[torch.Tensor</em>, <em class="sig-param">NoneType]=None</em><span class="sig-paren">)</span> &#x2192; torch.Tensor<a class="reference external" href="https://github.com/nocaps-org/updown-baseline/blob/master/updown/modules/attention.py#L36-L97"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#updown.modules.attention.BottomUpTopDownAttention.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compute attention weights over image features by applying bottom-up top-down attention
+over image features, using the query vector. Query vector is typically the output of
+attention LSTM in <a class="reference internal" href="modules.updown_cell.html#updown.modules.updown_cell.UpDownCell" title="updown.modules.updown_cell.UpDownCell"><code class="xref py py-class docutils literal notranslate"><span class="pre">UpDownCell</span></code></a>. Both image features
+and query vectors are first projected to a common dimension, that is <code class="docutils literal notranslate"><span class="pre">projection_size</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>query_vector: torch.Tensor</strong></dt><dd><p>A tensor of shape <code class="docutils literal notranslate"><span class="pre">(batch_size,</span> <span class="pre">query_size)</span></code> used for attending the image features.</p>
+</dd>
+<dt><strong>image_features: torch.Tensor</strong></dt><dd><p>A tensor of shape <code class="docutils literal notranslate"><span class="pre">(batch_size,</span> <span class="pre">num_boxes,</span> <span class="pre">image_feature_size)</span></code>. <code class="docutils literal notranslate"><span class="pre">num_boxes</span></code> for
+each instance in a batch might be different. Instances with lesser boxes are padded
+with zeros up to <code class="docutils literal notranslate"><span class="pre">num_boxes</span></code>.</p>
+</dd>
+<dt><strong>image_features_mask: torch.Tensor</strong></dt><dd><p>A mask over image features if <code class="docutils literal notranslate"><span class="pre">num_boxes</span></code> are different for each instance. Elements
+where mask is zero are not attended over.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt>torch.Tensor</dt><dd><p>A tensor of shape <code class="docutils literal notranslate"><span class="pre">(batch_size,</span> <span class="pre">num_boxes)</span></code> containing attention weights for each
+image features of each instance in the batch. If <code class="docutils literal notranslate"><span class="pre">image_features_mask</span></code> is provided
+(for adaptive features), then weights where the mask is zero, would be zero.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="updown.modules.attention.BottomUpTopDownAttention._project_image_features">
+<code class="sig-name descname">_project_image_features</code><span class="sig-paren">(</span><em class="sig-param">self</em>, <em class="sig-param">image_features:torch.Tensor</em><span class="sig-paren">)</span> &#x2192; torch.Tensor<a class="headerlink" href="#updown.modules.attention.BottomUpTopDownAttention._project_image_features" title="Permalink to this definition">¶</a></dt>
+<dd><p>Project image features to a common dimension for applying attention.</p>
+<p>For a single training/evaluation instance, the image features remain the same from first
+time-step to maximum decoding steps. To keep a clean API, we use LRU cache – which would
+maintain a cache of last 10 return values because on call signature, and not actually
+execute itself if it is called with the same image features seen at least once in last
+10 calls. This saves some computation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>image_features: torch.Tensor</strong></dt><dd><p>A tensor of shape <code class="docutils literal notranslate"><span class="pre">(batch_size,</span> <span class="pre">num_boxes,</span> <span class="pre">image_feature_size)</span></code>. <code class="docutils literal notranslate"><span class="pre">num_boxes</span></code> for
+each instance in a batch might be different. Instances with lesser boxes are padded
+with zeros up to <code class="docutils literal notranslate"><span class="pre">num_boxes</span></code>.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt>torch.Tensor</dt><dd><p>Projected image features of shape <code class="docutils literal notranslate"><span class="pre">(batch_size,</span> <span class="pre">num_boxes,</span> <span class="pre">image_feature_size)</span></code>.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../index.html">updown</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="config.html">updown.config</a></li>
+<li class="toctree-l1"><a class="reference internal" href="data.html">updown.data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="models.html">updown.models</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="modules.html">updown.modules</a><ul class="current">
+<li class="toctree-l2 current"><a class="current reference internal" href="#">updown.modules.attention</a></li>
+<li class="toctree-l2"><a class="reference internal" href="modules.updown_cell.html">updown.modules.updown_cell</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="utils.html">updown.utils</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../index.html">Documentation overview</a><ul>
+  <li><a href="modules.html">updown.modules</a><ul>
+      <li>Previous: <a href="modules.html" title="previous chapter">updown.modules</a></li>
+      <li>Next: <a href="modules.updown_cell.html" title="next chapter">updown.modules.updown_cell</a></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2019, nocaps team.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 2.1.0</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="../_sources/updown/modules.attention.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

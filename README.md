@@ -1,7 +1,8 @@
 UpDown Captioner Baseline for `nocaps`
 =====================================
 
-Baseline model for [`nocaps`][1] benchmark.
+Baseline model for [`nocaps`][1] benchmark, a re-implementation based on the
+[UpDown image captioning model trained on the COCO dataset (only)](<https://github.com/peteanderson80/up-down-captioner>`).
 
 Checkout our package documentation at [nocaps.org/updown-baseline](https://nocaps.org/updown-baseline)!
 
@@ -19,6 +20,17 @@ If you find this code useful, please consider citing:
 }
 ```
 
+As well as the paper that proposed this model: 
+
+```text
+@inproceedings{Anderson2017up-down,
+  author    = {Peter Anderson and Xiaodong He and Chris Buehler and Damien Teney and Mark Johnson
+               and Stephen Gould and Lei Zhang},
+  title     = {Bottom-Up and Top-Down Attention for Image Captioning and Visual Question Answering},
+  booktitle = {CVPR},
+  year      = {2018}
+}
+```
 
 How to setup this codebase?
 ---------------------------
@@ -47,6 +59,12 @@ pip install -r requirements.txt
 python setup.py develop
 ```
 
+**Note:** If `evalai` package install fails, install these packages and try again:
+
+```sh
+sudo apt-get install libxml2-dev libxslt1-dev
+```
+
 Now you can `import updown` from anywhere in your filesystem as long as you have this conda environment activated.
 
 
@@ -59,10 +77,9 @@ of 0.2 - we finally get 10-100 features per image (adaptive).
 
 Download (or symlink) the image features under `$PROJECT_ROOT/data` directory:
 
-1. COCO train2017: https://bit.ly/2G2iCuW
-2. COCO val2017: https://bit.ly/328hiAe
-3. `nocaps` val: https://bit.ly/32iRnpx
-4. `nocaps` test: https://bit.ly/2XvL4jQ
+[`coco_train2017`](https://bit.ly/2G2iCuW), [`coco_val2017`](https://bit.ly/328hiAe),
+[`nocaps_val`](https://bit.ly/32iRnpx), [`nocaps_test`](https://bit.ly/2XvL4jQ).
+
 
 #### Download Annotations
 

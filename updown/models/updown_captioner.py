@@ -14,7 +14,7 @@ from updown.modules import UpDownCell
 class UpDownCaptioner(nn.Module):
     r"""
     Image captioning model using bottom-up top-down attention, as in
-    `Anderson et al. 2017 <https://arxiv.org/abs/1707.07998>`. At training time, this model
+    `Anderson et al. 2017 <https://arxiv.org/abs/1707.07998>`_. At training time, this model
     maximizes the likelihood of ground truth caption, given image features. At inference time,
     given image features, captions are decoded using beam search.
 

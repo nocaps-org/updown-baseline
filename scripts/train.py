@@ -46,6 +46,13 @@ parser.add_argument(
 
 parser.add_argument_group("Checkpointing related arguments.")
 parser.add_argument(
+    "--skip-validation",
+    action="store_true",
+    help="Whether to skip validation and simply serialize checkpoints. This won't track the "
+    "best performing checkpoint (obviously). useful for cases where GPU server does not have "
+    "internet access and/or checkpoints are validation externally.",
+)
+parser.add_argument(
     "--serialization-dir",
     default="checkpoints/experiment",
     help="Path to a (non-existent) directory for serializing checkpoints and tensorboard logs.",
@@ -206,52 +213,59 @@ if __name__ == "__main__":
         #   VALIDATION
         # ----------------------------------------------------------------------------------------
         if iteration % _A.checkpoint_every == 0:
-            model.eval()
+            if not _A.skip_validation:
+                model.eval()
+                predictions: List[Prediction] = []
 
-            predictions: List[Prediction] = []
+                for batch in tqdm(val_dataloader):
+                    # keys: {"image_id", "image_features"}
+                    batch = {key: value.to(device) for key, value in batch.items()}
 
-            for batch in tqdm(val_dataloader):
-                # keys: {"image_id", "image_features"}
-                batch = {key: value.to(device) for key, value in batch.items()}
+                    with torch.no_grad():
+                        # shape: (batch_size, max_caption_length)
+                        batch_predictions = model(batch["image_features"])["predictions"]
 
-                with torch.no_grad():
-                    # shape: (batch_size, max_caption_length)
-                    batch_predictions = model(batch["image_features"])["predictions"]
+                    for i, image_id in enumerate(batch["image_id"]):
+                        instance_predictions = batch_predictions[i, :]
 
-                for i, image_id in enumerate(batch["image_id"]):
-                    instance_predictions = batch_predictions[i, :]
+                        # De-tokenize caption tokens and trim until first "@@BOUNDARY@@".
+                        caption = [
+                            vocabulary.get_token_from_index(p.item()) for p in instance_predictions
+                        ]
+                        eos_occurences = [
+                            j for j in range(len(caption)) if caption[j] == "@@BOUNDARY@@"
+                        ]
+                        caption = (
+                            caption[: eos_occurences[0]] if len(eos_occurences) > 0 else caption
+                        )
+                        predictions.append(
+                            {"image_id": image_id.item(), "caption": " ".join(caption)}
+                        )
 
-                    # De-tokenize caption tokens and trim until first "@@BOUNDARY@@".
-                    caption = [
-                        vocabulary.get_token_from_index(p.item()) for p in instance_predictions
-                    ]
-                    eos_occurences = [
-                        j for j in range(len(caption)) if caption[j] == "@@BOUNDARY@@"
-                    ]
-                    caption = caption[: eos_occurences[0]] if len(eos_occurences) > 0 else caption
+                model.train()
 
-                    predictions.append({"image_id": image_id.item(), "caption": " ".join(caption)})
+                # Print first 25 captions with their Image ID.
+                for k in range(25):
+                    print(predictions[k]["image_id"], predictions[k]["caption"])
 
-            model.train()
+                # Get evaluation metrics for nocaps val phase from EvalAI.
+                # keys: {"B1", "B2", "B3", "B4", "METEOR", "ROUGE-L", "CIDEr", "SPICE"}
+                # In each of these, keys:  {"in-domain", "near-domain", "out-domain", "entire"}
+                evaluation_metrics = evaluator.evaluate(predictions, iteration)
 
-            # Print first 25 captions with their Image ID.
-            for k in range(25):
-                print(predictions[k]["image_id"], predictions[k]["caption"])
+                # Print and log all evaluation metrics to tensorboard.
+                print(f"Evaluation metrics after iteration {iteration}:")
+                for metric_name in evaluation_metrics:
+                    tensorboard_writer.add_scalars(
+                        f"metrics/{metric_name}", evaluation_metrics[metric_name], iteration
+                    )
+                    print(f"\t{metric_name}:")
+                    for domain in evaluation_metrics[metric_name]:
+                        print(f"\t\t{domain}:", evaluation_metrics[metric_name][domain])
 
-            # Get evaluation metrics for nocaps val phase from EvalAI.
-            # keys: {"B1", "B2", "B3", "B4", "METEOR", "ROUGE-L", "CIDEr", "SPICE"}
-            # In each of these, keys:  {"in-domain", "near-domain", "out-domain", "entire"}
-            evaluation_metrics = evaluator.evaluate(predictions, iteration)
-
-            # Print and log all evaluation metrics to tensorboard.
-            print(f"Evaluation metrics after iteration {iteration}:")
-            for metric_name in evaluation_metrics:
-                tensorboard_writer.add_scalars(
-                    f"metrics/{metric_name}", evaluation_metrics[metric_name], iteration
-                )
-                print(f"\t{metric_name}:")
-                for domain in evaluation_metrics[metric_name]:
-                    print(f"\t\t{domain}:", evaluation_metrics[metric_name][domain])
-
-            # Serialize checkpoint and update best checkpoint by overall CIDEr.
-            checkpoint_manager.step(evaluation_metrics["CIDEr"]["entire"], iteration)
+                # Serialize checkpoint and update best checkpoint by overall CIDEr.
+                checkpoint_manager.step(evaluation_metrics["CIDEr"]["entire"], iteration)
+            else:
+                # Serialize checkpoint, best checkpoint does not mean anything if skipping
+                # validation altogether.
+                checkpoint_manager.step(0.0, iteration)

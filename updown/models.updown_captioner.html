@@ -54,7 +54,7 @@
 <em class="property">class </em><code class="sig-prename descclassname">updown.models.updown_captioner.</code><code class="sig-name descname">UpDownCaptioner</code><span class="sig-paren">(</span><em class="sig-param">vocabulary: allennlp.data.vocabulary.Vocabulary</em>, <em class="sig-param">image_feature_size: int</em>, <em class="sig-param">embedding_size: int</em>, <em class="sig-param">hidden_size: int</em>, <em class="sig-param">attention_projection_size: int</em>, <em class="sig-param">max_caption_length: int = 20</em>, <em class="sig-param">beam_size: int = 1</em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/nocaps-org/updown-baseline/blob/master/updown/models/updown_captioner.py#L14-L277"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#updown.models.updown_captioner.UpDownCaptioner" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code></p>
 <p>Image captioning model using bottom-up top-down attention, as in
-<cite>Anderson et al. 2017 &lt;https://arxiv.org/abs/1707.07998&gt;</cite>. At training time, this model
+<a class="reference external" href="https://arxiv.org/abs/1707.07998">Anderson et al. 2017</a>. At training time, this model
 maximizes the likelihood of ground truth caption, given image features. At inference time,
 given image features, captions are decoded using beam search.</p>
 <p>This captioner is basically a recurrent language model for caption sequences. Internally, it

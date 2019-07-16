@@ -2,7 +2,7 @@ UpDown Captioner Baseline for `nocaps`
 =====================================
 
 Baseline model for [`nocaps`][1] benchmark, a re-implementation based on the
-[UpDown image captioning model trained on the COCO dataset (only)](<https://github.com/peteanderson80/up-down-captioner>`).
+[UpDown image captioning model trained on the COCO dataset (only)](https://github.com/peteanderson80/up-down-captioner).
 
 Checkout our package documentation at [nocaps.org/updown-baseline](https://nocaps.org/updown-baseline)!
 

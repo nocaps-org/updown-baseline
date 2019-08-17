@@ -75,7 +75,8 @@ class NocapsEvaluator(object):
         """
         # Save predictions as a json file first.
         _, predictions_filename = tempfile.mkstemp(suffix=".json", text=True)
-        json.dump(predictions, open(predictions_filename, "w"))
+        with open(predictions_filename, "w") as f:
+            json.dump(predictions, f)
 
         submission_command = (
             f"evalai challenge {self._challenge_id} phase {self._phase_id} "

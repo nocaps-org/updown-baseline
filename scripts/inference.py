@@ -16,6 +16,8 @@ from updown.models import UpDownCaptioner
 from updown.types import Prediction
 from updown.utils.evalai import NocapsEvaluator
 
+from updown.modules import FreeConstraint, CBSConstraint
+
 
 parser = argparse.ArgumentParser(
     "Run inference using UpDown Captioner, on either nocaps val or test split."
@@ -94,6 +96,14 @@ if __name__ == "__main__":
         collate_fn=eval_dataset.collate_fn,
     )
 
+    if _C.MODEL.USE_CBS:
+        constraint = CBSConstraint(_C.DATA.CBS.TEST_OBJECTS, \
+            _C.DATA.CBS.OPEN_IMAGE_CLS_PATH, \
+            _C.DATA.CBS.OPEN_IMAGE_WORD_FORM, \
+            vocabulary)
+    else:
+        constraint = FreeConstraint(vocabulary.get_vocab_size())
+
     model = UpDownCaptioner(
         vocabulary,
         image_feature_size=_C.MODEL.IMAGE_FEATURE_SIZE,
@@ -102,6 +112,7 @@ if __name__ == "__main__":
         attention_projection_size=_C.MODEL.ATTENTION_PROJECTION_SIZE,
         beam_size=_C.MODEL.BEAM_SIZE,
         max_caption_length=_C.DATA.MAX_CAPTION_LENGTH,
+        constraint=constraint
     ).to(device)
 
     # Load checkpoint to run inference.

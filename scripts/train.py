@@ -196,7 +196,7 @@ if __name__ == "__main__":
         batch = next(train_dataloader)
 
         optimizer.zero_grad()
-        output_dict = model(batch["image_features"], batch["caption_tokens"])
+        output_dict = model(batch["image_id"], batch["image_features"], batch["caption_tokens"])
         batch_loss = output_dict["loss"].mean()
 
         batch_loss.backward()
@@ -223,7 +223,7 @@ if __name__ == "__main__":
 
                     with torch.no_grad():
                         # shape: (batch_size, max_caption_length)
-                        batch_predictions = model(batch["image_features"])["predictions"]
+                        batch_predictions = model(batch["image_id"], batch["image_features"])["predictions"]
 
                     for i, image_id in enumerate(batch["image_id"]):
                         instance_predictions = batch_predictions[i, :]

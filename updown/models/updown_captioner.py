@@ -175,11 +175,14 @@ class UpDownCaptioner(nn.Module):
             ).long()
 
             state_transform_list = []
+            state_size_list = []
             for image_id in image_ids:
-                state_transform = self._fc.get_state_matrix(image_id)
+                state_transform, state_size = self._fc.get_state_matrix(image_id)
                 state_transform_list.append(state_transform)
+                state_size_list.append(state_size)
+            max_state = max(state_size_list)
+            state_transform_list = [s[:, :max_state, :max_state, :] for s in state_transform_list]
             state_transform = torch.from_numpy(np.concatenate(state_transform_list, axis=0)).to(start_predictions.device)
-
             # shape (log_probabilities): (batch_size, beam_size)
             best_predictions = self._beam_search.search(
                 self._decode_step, image_features, start_predictions, states, state_transform, image_ids

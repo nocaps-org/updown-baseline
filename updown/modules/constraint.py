@@ -137,6 +137,15 @@ class CBSConstraint(object):
 
         return torch.from_numpy(np.array(pred, dtype=np.int64)).to(beam_score.device)
 
+    def get_word_set(self, target):
+        if target in self.oi_word_form:
+            group_w = self.oi_word_form[target]
+        else:
+            group_w = [target]
+
+        group_w = [self._vocabulary.get_token_index(w) for w in group_w]
+        return [v for v in group_w if v > 0]
+
     def get_state_matrix(self, image_id: int):
         i = self._map[image_id.item()]
 
@@ -158,41 +167,53 @@ class CBSConstraint(object):
         anns = sorted(anns, key=lambda x:x[0], reverse=True) 
 
         candidates = []
-        obj_names = []
         for s, cls_idx in anns[:self.topk]: # Keep up to three classes
             text = self.oi_class_list[cls_idx].lower()
-            if text not in obj_names:
-                obj_names.append(text)
-                # Individual hacks to match existing vocab, etc
-                if text in replacements:
-                    text = replacements[text]
-                
-                group_w = []
-                for w in text.split():
-                    if w in self.oi_word_form:
-                        group_w += self.oi_word_form[w]
-                    else:
-                        group_w.append(w)
-                group_w = [self._vocabulary.get_token_index(w) for w in group_w]
-                candidates.append([v for v in group_w if v > 0])
+            if text in replacements:
+                text = replacements[text]
+            if text not in candidates:
+                candidates.append(text)
 
-        self.obj_num[image_id.item()] = len(obj_names)
+        self.obj_num[image_id.item()] = len(candidates)
 
-        self.M.init_matrix(8)
-        for i in range(8):
+        self.M.init_matrix(26)
+        for i in range(26):
             self.M.init_row(i)
 
+        start_addtional_index = 8
         level_mapping = [{3:5, 2:6}, {1:6, 3:4}, {1:5, 2:4}]
-        for i, group_w in enumerate(candidates):
-            self.M.add_connect(0, i + 1, group_w)
-            self.M.add_connect(i + 4, 7, group_w)
+        for i, target in enumerate(candidates):
+            if ' ' not in target:
+                group_w = self.get_word_set(target)
 
-            mapping = level_mapping[i]
-            for j in range(1, 4):
-                if j in mapping:
-                    self.M.add_connect(j, mapping[j], group_w)
+                self.M.add_connect(0, i + 1, group_w)
+                self.M.add_connect(i + 4, 7, group_w)
 
-        return self.M.get_matrix()
+                mapping = level_mapping[i]
+                for j in range(1, 4):
+                    if j in mapping:
+                        self.M.add_connect(j, mapping[j], group_w)
+            else:
+                [s1, s2] = target.split()[:2]
+                group_s1 = self.get_word_set(s1)
+                group_s2 = self.get_word_set(s2)
+
+                self.M.add_connect(0, start_addtional_index, group_s1)
+                self.M.add_connect(start_addtional_index, i + 1, group_s2)
+                start_addtional_index += 1
+
+                self.M.add_connect(i + 4, start_addtional_index, group_s1)
+                self.M.add_connect(start_addtional_index, 7, group_s2)
+                start_addtional_index += 1
+
+                mapping = level_mapping[i]
+                for j in range(1, 4):
+                    if j in mapping:
+                        self.M.add_connect(j, start_addtional_index, group_s1)
+                        self.M.add_connect(start_addtional_index, mapping[j], group_s2)
+                        start_addtional_index += 1
+                        
+        return self.M.get_matrix(), start_addtional_index
             
 class FreeConstraint:
 

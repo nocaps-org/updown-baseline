@@ -45,6 +45,9 @@ parser.add_argument(
     "--in-memory", action="store_true", help="Whether to load image features in memory."
 )
 parser.add_argument(
+    "--run-val", action="store_true", help="Whether to run val data"
+)
+parser.add_argument(
     "--checkpoint-path", required=True, help="Path to load checkpoint and run inference on."
 )
 parser.add_argument("--output-path", required=True, help="Path to save predictions (as a JSON).")
@@ -86,7 +89,7 @@ if __name__ == "__main__":
     vocabulary = Vocabulary.from_files(_C.DATA.VOCABULARY)
 
     eval_dataset = EvaluationDataset(
-        image_features_h5path=_C.DATA.TEST_FEATURES, in_memory=_A.in_memory
+        image_features_h5path=_C.DATA.TEST_FEATURES if not _A.run_val else _C.DATA.VAL_FEATURES, in_memory=_A.in_memory
     )
     eval_dataloader = DataLoader(
         eval_dataset,
@@ -97,9 +100,10 @@ if __name__ == "__main__":
     )
 
     if _C.MODEL.USE_CBS:
-        constraint = CBSConstraint(_C.DATA.CBS.TEST_OBJECTS, \
-            _C.DATA.CBS.OPEN_IMAGE_CLS_PATH, \
-            _C.DATA.CBS.OPEN_IMAGE_WORD_FORM, \
+        constraint = CBSConstraint(_C.DATA.CBS_TEST_OBJECTS if not _A.run_val else _C.DATA.CBS_VAL_OBJECTS, \
+            _C.DATA.CBS_OPEN_IMAGE_CLS_PATH, \
+            _C.DATA.CBS_OPEN_IMAGE_WORD_FORM, \
+            _C.DATA.CBS_CLASS_STRUCTURE_PATH,
             vocabulary)
     else:
         constraint = FreeConstraint(vocabulary.get_vocab_size())
@@ -136,7 +140,7 @@ if __name__ == "__main__":
 
         with torch.no_grad():
             # shape: (batch_size, max_caption_length)
-            batch_predictions = model(batch["image_features"])["predictions"]
+            batch_predictions = model(batch["image_id"], batch["image_features"])["predictions"]
 
         for i, image_id in enumerate(batch["image_id"]):
             instance_predictions = batch_predictions[i, :]
@@ -155,7 +159,7 @@ if __name__ == "__main__":
     json.dump(predictions, open(_A.output_path, "w"))
 
     if _A.evalai_submit:
-        evaluator = NocapsEvaluator("test" if "test" in _C.DATA.TEST_FEATURES else "val")
+        evaluator = NocapsEvaluator("val" if _A.run_val else "test")
         evaluation_metrics = evaluator.evaluate(predictions)
 
         print(f"Evaluation metrics for checkpoint {_A.checkpoint_path}:")

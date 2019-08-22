@@ -2,6 +2,10 @@ import numpy as np
 import torch
 from allennlp.data import Vocabulary
 import h5py
+import json
+
+from anytree import AnyNode
+from anytree.search import findall_by_attr,findall
 
 BLACKLIST_CATEGORIES = [
             "Tree",
@@ -54,6 +58,26 @@ replacements = {
   "luggage and bags": 'luggage'
 }
 
+class OIDictImporter(object):
+    ''' Importer that works on Open Images json hierarchy '''
+    def __init__(self, nodecls=AnyNode):
+        self.nodecls = nodecls
+
+    def import_(self, data):
+        """Import tree from `data`."""
+        return self.__import(data)
+
+
+    def __import(self, data, parent=None):
+        assert isinstance(data, dict)
+        assert "parent" not in data
+        attrs = dict(data)
+        children = attrs.pop("Subcategory", []) + attrs.pop("Part", [])
+        node = self.nodecls(parent=parent, **attrs)
+        for child in children:
+            self.__import(child, parent=node)
+        return node
+
 class cbs_matrix:
 
     def __init__(self, vocab_size):
@@ -76,17 +100,56 @@ class cbs_matrix:
     def get_matrix(self):
         return self.matrix
 
-def suppress_parts(dets, classes):
+def suppress_parts(scores, classes):
     # just remove those 39 words
-    keep = [i for i,cls in enumerate(classes) if cls not in BLACKLIST_CATEGORIES]
+    keep = [i for i, (cls, score) in enumerate(zip(classes, scores)) if score > 0.01 and cls not in BLACKLIST_CATEGORIES]
+    return keep
+
+def nms(dets, classes, hierarchy, thresh=0.5):
+    # Non-max suppression of overlapping boxes where score is based on 'height' in the hierarchy,
+    # defined as the number of edges on the longest path to a leaf
+    
+    scores = [findall(hierarchy, filter_=lambda node: node.LabelName in (cls))[0].height for cls in classes]
+    
+    x1 = dets[:, 0]
+    y1 = dets[:, 1]
+    x2 = dets[:, 2]
+    y2 = dets[:, 3]
+
+    areas = (x2 - x1 + 1) * (y2 - y1 + 1)
+
+    scores = np.array(scores)
+    order = scores.argsort()
+
+    keep = []
+    while order.size > 0:
+        i = order[0]
+        keep.append(i)
+        xx1 = np.maximum(x1[i], x1[order[1:]])
+        yy1 = np.maximum(y1[i], y1[order[1:]])
+        xx2 = np.minimum(x2[i], x2[order[1:]])
+        yy2 = np.minimum(y2[i], y2[order[1:]])
+
+        w = np.maximum(0.0, xx2 - xx1 + 1)
+        h = np.maximum(0.0, yy2 - yy1 + 1)
+        inter = w * h
+
+        # check the score, objects with smaller or equal number of layers cannot be removed.
+        keep_condition = np.logical_or(scores[order[1:]] <= scores[i], \
+            inter / (areas[i] + areas[order[1:]] - inter) <= thresh)
+
+        inds = np.where(keep_condition)[0]
+        order = order[inds + 1]
+
     return keep
 
 class CBSConstraint(object):
 
-    def __init__(self, features_h5path: str, oi_class_path: str, oi_word_form_path: str, vocabulary: Vocabulary, topk: int = 3):
+    def __init__(self, features_h5path: str, oi_class_path: str, oi_word_form_path: str, class_structure_json_path: str, vocabulary: Vocabulary, topk: int = 3):
         self.features_h5path = features_h5path
         self.topk = topk
         self._vocabulary = vocabulary
+        self._pad_index = vocabulary.get_token_index("@@UNKNOWN@@")
         self.M = cbs_matrix(self._vocabulary.get_vocab_size())
 
         self.boxes_h5 = h5py.File(self.features_h5path, "r")
@@ -99,14 +162,28 @@ class CBSConstraint(object):
         with open(oi_class_path) as out:
             for line in out:
                 self.oi_class_list.append(line.strip().split(',')[1])
+        
+        oov, total = 0, 0
         self.oi_word_form = {}
         with open(oi_word_form_path) as out:
             for line in out:
                 line = line.strip()
                 items = line.split('\t')
-                self.oi_word_form[items[0]] = items[1].split(',')
+                w_list = items[1].split(',')
+                self.oi_word_form[items[0]] = w_list
+
+                for w in w_list:
+                    for ch in w.split():
+                        ch_index = self._vocabulary.get_token_index(ch) 
+                        oov += 1 if ch_index == self._pad_index else 0
+                    total += len(w.split())
+        print("object class word OOV %d / %d = %.2f" % (oov, total, 100 * oov / total))
 
         self.obj_num = {}
+
+        importer = OIDictImporter()
+        with open(class_structure_json_path) as f:
+            self.class_structure = importer.import_(json.load(f))
 
     def select_state_func(self, beam_prediction, beam_score, imageID):
         max_step = beam_prediction.size(-1)
@@ -122,10 +199,7 @@ class CBSConstraint(object):
         pred = []
         for i, ID in enumerate(imageID):
             label_num = self.obj_num[ID]
-            if label_num >= 3:
-                # Three labels must be satisfied together
-                pred.append(beam_prediction[i, 7, 0, :])
-            elif label_num >= 2:
+            if label_num >= 2:
                 # Two labels must be satisfied together
                 pred.append(top_two_beam_prediction[i])
             elif label_num >= 1:
@@ -144,7 +218,7 @@ class CBSConstraint(object):
             group_w = [target]
 
         group_w = [self._vocabulary.get_token_index(w) for w in group_w]
-        return [v for v in group_w if v > 0]
+        return [v for v in group_w if not (v == self._pad_index)]
 
     def get_state_matrix(self, image_id: int):
         i = self._map[image_id.item()]
@@ -153,12 +227,12 @@ class CBSConstraint(object):
         box_cls = self.boxes_h5["classes"][i]
         box_score = self.boxes_h5["scores"][i]
 
-        keep = box_score > 0
+        keep = suppress_parts(box_score, [self.oi_class_list[cls_] for cls_ in box_cls])
         box = box[keep]
         box_cls = box_cls[keep]
         box_score = box_score[keep]
 
-        keep = suppress_parts(box, [self.oi_class_list[cls_] for cls_ in box_cls])
+        keep = nms(box, [self.oi_class_list[cls_] for cls_ in box_cls], self.class_structure)
         box = box[keep]
         box_cls = box_cls[keep]
         box_score = box_score[keep]
@@ -183,7 +257,9 @@ class CBSConstraint(object):
         start_addtional_index = 8
         level_mapping = [{3:5, 2:6}, {1:6, 3:4}, {1:5, 2:4}]
         for i, target in enumerate(candidates):
-            if ' ' not in target:
+            word_list = target.split()
+
+            if len(word_list) == 1:
                 group_w = self.get_word_set(target)
 
                 self.M.add_connect(0, i + 1, group_w)
@@ -193,8 +269,8 @@ class CBSConstraint(object):
                 for j in range(1, 4):
                     if j in mapping:
                         self.M.add_connect(j, mapping[j], group_w)
-            else:
-                [s1, s2] = target.split()[:2]
+            elif len(word_list) == 2:
+                [s1, s2] = word_list
                 group_s1 = self.get_word_set(s1)
                 group_s2 = self.get_word_set(s2)
 
@@ -212,6 +288,29 @@ class CBSConstraint(object):
                         self.M.add_connect(j, start_addtional_index, group_s1)
                         self.M.add_connect(start_addtional_index, mapping[j], group_s2)
                         start_addtional_index += 1
+            elif len(word_list) == 3:
+                [s1, s2, s3] = word_list
+                group_s1 = self.get_word_set(s1)
+                group_s2 = self.get_word_set(s2)
+                group_s3 = self.get_word_set(s3)
+
+                self.M.add_connect(0, start_addtional_index, group_s1)
+                self.M.add_connect(start_addtional_index, start_addtional_index + 1, group_s2)
+                self.M.add_connect(start_addtional_index + 1, i + 1, group_s3)
+                start_addtional_index += 2
+
+                self.M.add_connect(i + 4, start_addtional_index, group_s1)
+                self.M.add_connect(start_addtional_index, start_addtional_index + 1, group_s2)
+                self.M.add_connect(start_addtional_index + 1, 7, group_s3)
+                start_addtional_index += 2
+
+                mapping = level_mapping[i]
+                for j in range(1, 4):
+                    if j in mapping:
+                        self.M.add_connect(j, start_addtional_index, group_s1)
+                        self.M.add_connect(start_addtional_index, start_addtional_index + 1, group_s2)
+                        self.M.add_connect(start_addtional_index + 1, mapping[j], group_s3)
+                        start_addtional_index += 2
                         
         return self.M.get_matrix(), start_addtional_index
             

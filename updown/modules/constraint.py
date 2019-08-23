@@ -105,7 +105,7 @@ def suppress_parts(scores, classes):
     keep = [i for i, (cls, score) in enumerate(zip(classes, scores)) if score > 0.01 and cls not in BLACKLIST_CATEGORIES]
     return keep
 
-def nms(dets, classes, hierarchy, thresh=0.5):
+def nms(dets, classes, hierarchy, thresh=0.7):
     # Non-max suppression of overlapping boxes where score is based on 'height' in the hierarchy,
     # defined as the number of edges on the longest path to a leaf
     

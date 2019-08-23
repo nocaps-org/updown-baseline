@@ -11,6 +11,8 @@ from allennlp.nn.util import add_sentence_boundary_token_ids, sequence_cross_ent
 from updown.modules import UpDownCell
 from updown.modules import ConstraintBeamSearch
 
+from torchtext.vocab import GloVe
+
 
 class UpDownCaptioner(nn.Module):
     r"""
@@ -66,19 +68,20 @@ class UpDownCaptioner(nn.Module):
         self.attention_projection_size = attention_projection_size
 
         # Short hand variable names for convenience
-        vocab_size = vocabulary.get_vocab_size()
+        self.vocab_size = vocabulary.get_vocab_size()
         self._pad_index = vocabulary.get_token_index("@@UNKNOWN@@")
         self._boundary_index = vocabulary.get_token_index("@@BOUNDARY@@")
 
         self._embedding_layer = nn.Embedding(
-            vocab_size, embedding_size, padding_idx=self._pad_index
+            self.vocab_size, embedding_size, padding_idx=self._pad_index
         )
 
         self._updown_cell = UpDownCell(
             image_feature_size, embedding_size, hidden_size, attention_projection_size
         )
 
-        self._output_layer = nn.Linear(hidden_size, vocab_size)
+        self.to_glove = nn.Linear(hidden_size, self.embedding_size)
+        self._output_layer = nn.Linear(self.embedding_size, self.vocab_size, bias=False)
         self._log_softmax = nn.LogSoftmax(dim=1)
 
         # We use beam search to find the most likely caption during inference.
@@ -93,6 +96,29 @@ class UpDownCaptioner(nn.Module):
         self._beam_search.update_parameter(self._fc.select_state_func)
 
         self._max_caption_length = max_caption_length
+
+        self._initialize_glove()
+
+    def _initialize_glove(self):
+        assert self.embedding_size == 300
+        glove = GloVe(name="42B", dim=self.embedding_size)
+
+        caption_oov = 0
+        glove_caption_tokens = torch.zeros(self._vocabulary.get_vocab_size(), self.embedding_size)
+        for word, i in self._vocabulary.get_token_to_index_vocabulary().items():
+            if word in glove.stoi:
+                glove_caption_tokens[i] = glove.vectors[glove.stoi[word]]
+            else:  # use a random vector instead
+                caption_oov += 1
+                glove_caption_tokens[i] = 2 * torch.randn(self.embedding_size) - 1
+        print("Caption OOV: %d / %d = %.2f" % (caption_oov, self.vocab_size, 100 * caption_oov / self.vocab_size))
+
+        for p in self._output_layer.parameters(): p.requires_grad = False
+        self._output_layer.weight.copy_(glove_caption_tokens)
+
+        for p in self._embedding_layer.parameters(): p.requires_grad = False
+        self._embedding_layer.weight.copy_(glove_caption_tokens)
+
 
     def forward(
         self, image_ids: torch.Tensor, image_features: torch.Tensor, caption_tokens: Optional[torch.Tensor] = None
@@ -224,13 +250,13 @@ class UpDownCaptioner(nn.Module):
         updown_output, states = self._updown_cell(image_features, token_embeddings, states)
 
         # shape: (batch_size, vocab_size)
+        updown_output = torch.tanh(self.to_glove(updown_output))
         output_logits = self._output_layer(updown_output)
-        output_class_logprobs = self._log_softmax(output_logits)
 
         # Return logits while training, to further calculate cross entropy loss.
         # Return logprobs during inference, because beam search needs them.
         # Note:: This means NO BEAM SEARCH DURING TRAINING.
-        outputs = output_logits if self.training else output_class_logprobs
+        outputs = output_logits if self.training else self._log_softmax(output_logits)
 
         return outputs, states  # type: ignore
 

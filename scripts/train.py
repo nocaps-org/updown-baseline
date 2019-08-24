@@ -105,16 +105,14 @@ if __name__ == "__main__":
     # --------------------------------------------------------------------------------------------
 
     vocabulary = Vocabulary.from_files(_C.DATA.VOCABULARY)
-
+    with open(_C.DATA.CBS_OPEN_IMAGE_WORD_FORM) as out:
+        for line in out:
+            line = line.strip()
+            items = line.split('\t')
+            for cls_name in items[1].split(','):
+                for w in cls_name.split():
+                    vocabulary.add_token_to_namespace(w)
     if _C.MODEL.USE_CBS:
-        with open(_C.DATA.CBS_OPEN_IMAGE_WORD_FORM) as out:
-            for line in out:
-                line = line.strip()
-                items = line.split('\t')
-                for cls_name in items[1].split(','):
-                    for w in cls_name.split():
-                        vocabulary.add_token_to_namespace(w)
-
         constraint = CBSConstraint(_C.DATA.CBS_VAL_OBJECTS, \
             _C.DATA.CBS_OPEN_IMAGE_CLS_PATH, \
             _C.DATA.CBS_OPEN_IMAGE_WORD_FORM, \

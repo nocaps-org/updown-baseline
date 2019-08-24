@@ -325,7 +325,7 @@ class FreeConstraint:
 	def get_state_matrix(self, image_id):
 		self.M.init_matrix(1)
 		self.M.init_row(0)
-		return self.M.get_matrix()
+		return self.M.get_matrix(), 1
 
 
 

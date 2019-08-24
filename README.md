@@ -110,6 +110,16 @@ Build caption vocabulary using COCO train2017 captions.
 python scripts/build_vocabulary.py -c data/coco/captions_train2017.json -o data/vocabulary
 ```
 
+### Constraint Beam Search
+
+We need following open image classes meta data to start Constraint Beam Search:
+
+1. class-descriptions-boxable.csv (open image class list): https://storage.googleapis.com/openimages/2018_04/class-descriptions-boxable.csv
+2. bbox_labels_600_hierarchy_readable.json (open image class hierarchy structure) http://bit.ly/2MA5PVC
+3. oi_concepts_to_words.txt (class vocabulary) http://bit.ly/2NvhIvC
+
+Please doownload them into `data/cbs/`. By default, we use Constraint Beam Search for decoding our model but you can set `MODEL.USE_CBS` as `False` to disable it.
+
 ### Evaluation Server
 
 `nocaps` val and test splits are held privately behind EvalAI. To evaluate on `nocaps`, create an account on [EvalAI][4] and get the auth token from [profile details][5]. Set the token through EvalAI CLI as follows:
@@ -175,7 +185,7 @@ Results
 
 Pre-trained checkpoint with the provided config is available to download here:
 
-1. Checkpoint (`.pth` file): https://bit.ly/2JwuHcP
+1. Checkpoint (`.pth` file): http://bit.ly/2ZctSMj
 2. Predictions on `nocaps val`: https://bit.ly/2YKxxBA
 3. Predictions on `nocaps test`: https://bit.ly/2XBs0R4
 
@@ -204,33 +214,63 @@ Pre-trained checkpoint with the provided config is available to download here:
   </tr>
   <tr>
     <th>val</th>
-    <td>78.1</td>
-    <td>11.6</td>
-    <td>57.7</td>
+    <td>75.8</td>
+    <td>11.7</td>
+    <td>58.0</td>
     <td>10.3</td>
-    <td>31.3</td>
-    <td>8.3</td>
-    <td>73.7</td>
-    <td>18.3</td>
+    <td>32.9</td>
+    <td>8.1</td>
+    <td>73.1</td>
+    <td>18.0</td>
     <td>22.7</td>
-    <td>50.4</td>
-    <td>55.3</td>
+    <td>50.2</td>
+    <td>55.4</td>
     <td>10.1</td>
   </tr>
   <tr>
-    <th>test</th>
-    <td>74.3</td>
+    <th>val-CBS</th>
+    <td>78.4</td>
+    <td>12.0</td>
+    <td>73.3</td>
     <td>11.5</td>
-    <td>56.9</td>
-    <td>10.3</td>
-    <td>30.1</td>
-    <td>8.1</td>
-    <td>74.0</td>
-    <td>19.2</td>
-    <td>23.0</td>
-    <td>51.0</td>
-    <td>54.3</td>
-    <td>10.1</td>
+    <td>70.0</td>
+    <td>9.8</td>
+    <td>75.9</td>
+    <td>17.6</td>
+    <td>24.0</td>
+    <td>51.3</td>
+    <td>73.4</td>
+    <td>11.2</td>
+  </tr>
+  <tr>
+    <th>test</th>
+    <td>X</td>
+    <td>X</td>
+    <td>X</td>
+    <td>X</td>
+    <td>X</td>
+    <td>X</td>
+    <td>X</td>
+    <td>X</td>
+    <td>X</td>
+    <td>X</td>
+    <td>X</td>
+    <td>X</td>
+  </tr>
+  <tr>
+    <th>test-CBS</th>
+    <td>X</td>
+    <td>X</td>
+    <td>X</td>
+    <td>X</td>
+    <td>X</td>
+    <td>X</td>
+    <td>X</td>
+    <td>X</td>
+    <td>X</td>
+    <td>X</td>
+    <td>X</td>
+    <td>X</td>
   </tr>
 </table>
 

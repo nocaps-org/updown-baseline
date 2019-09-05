@@ -11,12 +11,12 @@ Checkout our package documentation at [nocaps.org/updown-baseline](https://nocap
 If you find this code useful, please consider citing:
 
 ```text
-@article{nocaps,
-  author  = {Harsh Agrawal* and Karan Desai* and Yufei Wang and Xinlei Chen and Rishabh Jain and
+@inproceedings{nocaps2019,
+  author    = {Harsh Agrawal* and Karan Desai* and Yufei Wang and Xinlei Chen and Rishabh Jain and
              Mark Johnson and Dhruv Batra and Devi Parikh and Stefan Lee and Peter Anderson},
-  title   = {{nocaps}: {n}ovel {o}bject {c}aptioning {a}t {s}cale},
-  journal = {arXiv preprint arXiv:1812.08658},
-  year    = {2018},
+  title     = {{nocaps}: {n}ovel {o}bject {c}aptioning {a}t {s}cale},
+  booktitle = {International Conference on Computer Vision (ICCV)},
+  year      = {2019}
 }
 ```
 

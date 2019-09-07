@@ -9,7 +9,7 @@ from allennlp.data import Vocabulary
 from allennlp.nn.util import add_sentence_boundary_token_ids, sequence_cross_entropy_with_logits
 
 from updown.modules import UpDownCell
-from updown.modules import ConstraintBeamSearch
+from updown.modules import ConstrainedBeamSearch
 
 from torchtext.vocab import GloVe
 
@@ -86,7 +86,7 @@ class UpDownCaptioner(nn.Module):
 
         # We use beam search to find the most likely caption during inference.
         self._beam_size = beam_size
-        self._beam_search = ConstraintBeamSearch(
+        self._beam_search = ConstrainedBeamSearch(
             self._boundary_index,
             max_steps=max_caption_length,
             beam_size=beam_size,
@@ -111,17 +111,24 @@ class UpDownCaptioner(nn.Module):
             else:  # use a random vector instead
                 caption_oov += 1
                 glove_caption_tokens[i] = 2 * torch.randn(self.embedding_size) - 1
-        print("Caption OOV: %d / %d = %.2f" % (caption_oov, self.vocab_size, 100 * caption_oov / self.vocab_size))
+        print(
+            "Caption OOV: %d / %d = %.2f"
+            % (caption_oov, self.vocab_size, 100 * caption_oov / self.vocab_size)
+        )
 
-        for p in self._output_layer.parameters(): p.requires_grad = False
+        for p in self._output_layer.parameters():
+            p.requires_grad = False
         self._output_layer.weight.copy_(glove_caption_tokens)
 
-        for p in self._embedding_layer.parameters(): p.requires_grad = False
+        for p in self._embedding_layer.parameters():
+            p.requires_grad = False
         self._embedding_layer.weight.copy_(glove_caption_tokens)
 
-
     def forward(
-        self, image_ids: torch.Tensor, image_features: torch.Tensor, caption_tokens: Optional[torch.Tensor] = None
+        self,
+        image_ids: torch.Tensor,
+        image_features: torch.Tensor,
+        caption_tokens: Optional[torch.Tensor] = None,
     ) -> Dict[str, torch.Tensor]:
         r"""
         Given bottom-up image features, maximize the likelihood of paired captions during
@@ -208,10 +215,17 @@ class UpDownCaptioner(nn.Module):
                 state_size_list.append(state_size)
             max_state = max(state_size_list)
             state_transform_list = [s[:, :max_state, :max_state, :] for s in state_transform_list]
-            state_transform = torch.from_numpy(np.concatenate(state_transform_list, axis=0)).to(start_predictions.device)
+            state_transform = torch.from_numpy(np.concatenate(state_transform_list, axis=0)).to(
+                start_predictions.device
+            )
             # shape (log_probabilities): (batch_size, beam_size)
             best_predictions = self._beam_search.search(
-                self._decode_step, image_features, start_predictions, states, state_transform, image_ids
+                self._decode_step,
+                image_features,
+                start_predictions,
+                states,
+                state_transform,
+                image_ids,
             )
 
             output_dict = {"predictions": best_predictions}

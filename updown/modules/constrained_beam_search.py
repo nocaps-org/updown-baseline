@@ -1,9 +1,11 @@
-from typing import Optional
+from typing import Callable, Dict, Optional, Tuple
 
 import torch
 
 
 VERY_NEGATIVE_NUMBER = -1e20
+StateType = Dict[str, torch.Tensor]
+StepFunctionType = Callable[[torch.Tensor, StateType], Tuple[torch.Tensor, StateType]]
 
 
 def enlarge_single_tensor(t, batch_size, state_size, beam_size):
@@ -20,32 +22,33 @@ class ConstrainedBeamSearch(object):
     def __init__(
         self,
         end_index: int,
-        max_steps: int,
-        beam_size: int,
+        max_steps: int = 20,
+        beam_size: int = 5,
         per_node_beam_size: Optional[int] = None,
     ):
-        super().__init__()
         self._end_index = end_index
-        self.init_state = 0
         self.max_steps = max_steps
         self.beam_size = beam_size
         self.per_node_beam_size = per_node_beam_size or self.beam_size
 
-        self.select_state_func = None
+        self.init_state = 0
         self.early_stop = True
 
         self.VERY_NEGATIVE_TENSOR = torch.FloatTensor([VERY_NEGATIVE_NUMBER])
 
-    def update_parameter(self, select_state_func, early_stop=True):
-        self.select_state_func = select_state_func
+    def update_parameter(self, early_stop=True):
         self.early_stop = early_stop
 
     def search(
-        self, step_func, image_feature, start_predictions, start_state, state_transform, image_ids
+        self,
+        start_predictions: torch.Tensor,
+        start_state: StateType,
+        step: StepFunctionType,
+        state_transition_matrix: torch.Tensor,
+        image_ids: torch.Tensor,
     ):
-        assert self.select_state_func is not None, "accept state function should be set"
-        assert state_transform.size(1) == state_transform.size(2)
-        self.state_size = state_transform.size(1)
+        assert state_transition_matrix.size(1) == state_transition_matrix.size(2)
+        self.state_size = state_transition_matrix.size(1)
 
         device_id = start_predictions.get_device()
         self.VERY_NEGATIVE_TENSOR = self.VERY_NEGATIVE_TENSOR.to(device_id)
@@ -54,8 +57,8 @@ class ConstrainedBeamSearch(object):
 
         batch_size = start_predictions.size(0)
 
-        start_class_log_probabilities, state = step_func(
-            image_feature, start_predictions, start_state
+        start_class_log_probabilities, state = step(
+            start_predictions, start_state
         )
         self.num_classes = start_class_log_probabilities.size(-1)
         state_prediction = start_class_log_probabilities.view(
@@ -63,7 +66,7 @@ class ConstrainedBeamSearch(object):
         ).expand(batch_size, self.state_size, self.num_classes)
 
         state_prediction = torch.where(
-            state_transform[:, self.init_state, :, :], state_prediction, self.VERY_NEGATIVE_TENSOR
+            state_transition_matrix[:, self.init_state, :, :], state_prediction, self.VERY_NEGATIVE_TENSOR
         )
 
         # (batch_size, state_size, beam_size)
@@ -89,7 +92,7 @@ class ConstrainedBeamSearch(object):
             image_feature, batch_size, self.state_size, self.beam_size
         )
 
-        step_state_mask = state_transform.view(
+        step_state_mask = state_transition_matrix.view(
             batch_size, self.state_size, self.state_size, 1, self.num_classes
         ).expand(batch_size, self.state_size, self.state_size, self.beam_size, self.num_classes)
 
@@ -100,7 +103,7 @@ class ConstrainedBeamSearch(object):
             if (last_predictions == self._end_index).all() and self.early_stop:
                 break
 
-            class_log_probabilities, state = step_func(image_feature, last_predictions, state)
+            class_log_probabilities, state = step(image_feature, last_predictions, state)
             last_predictions_expanded = (
                 last_predictions.view(-1)
                 .unsqueeze(-1)
@@ -216,4 +219,4 @@ class ConstrainedBeamSearch(object):
         all_predictions = torch.cat(list(reversed(reconstructed_predictions)), 2)
         all_predictions = all_predictions.view(batch_size, self.state_size, self.beam_size, -1)
 
-        return self.select_state_func(all_predictions, last_log_probabilities, image_ids)
+        return all_predictions, last_log_probabilities

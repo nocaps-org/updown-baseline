@@ -93,8 +93,6 @@ class UpDownCaptioner(nn.Module):
             per_node_beam_size=beam_size // 2,
         )
         self._fc = constraint
-        self._beam_search.update_parameter(self._fc.select_state_func)
-
         self._max_caption_length = max_caption_length
 
         self._initialize_glove()
@@ -207,27 +205,36 @@ class UpDownCaptioner(nn.Module):
                 (batch_size,), fill_value=self._boundary_index
             ).long()
 
-            state_transform_list = []
+            state_transition_matrix_list = []
             state_size_list = []
             for image_id in image_ids:
-                state_transform, state_size = self._fc.get_state_matrix(image_id)
-                state_transform_list.append(state_transform)
+                state_transition_matrix, state_size = self._fc.get_state_matrix(image_id)
+                state_transition_matrix_list.append(state_transition_matrix)
                 state_size_list.append(state_size)
             max_state = max(state_size_list)
-            state_transform_list = [s[:, :max_state, :max_state, :] for s in state_transform_list]
-            state_transform = torch.from_numpy(np.concatenate(state_transform_list, axis=0)).to(
-                start_predictions.device
-            )
+            state_transition_matrix_list = [
+                s[:, :max_state, :max_state, :] for s in state_transition_matrix_list
+            ]
+            state_transition_matrix = torch.from_numpy(
+                np.concatenate(state_transition_matrix_list, axis=0)
+            ).to(start_predictions.device)
+
+            # Add image features as a default argument to match callable signature acceptable by
+            # beam search class (previous predictions and states only).
+            beam_decode_step = functools.partial(self._decode_step, image_features)
+
+            # shape (all_top_k_predictions): (batch_size, beam_size, num_decoding_steps)
             # shape (log_probabilities): (batch_size, beam_size)
-            best_predictions = self._beam_search.search(
-                self._decode_step,
-                image_features,
-                start_predictions,
-                states,
-                state_transform,
-                image_ids,
+            all_top_k_predictions, log_probabilities = self._beam_search.search(
+                start_predictions, states, beam_decode_step
             )
 
+            best_predictions = self._fc.select_state_func(
+                all_top_k_predictions, log_probabilities, image_ids
+            )
+
+            # Pick the first beam as predictions (normal beam search)
+            # best_predictions = all_top_k_predictions[:, 0, :]
             output_dict = {"predictions": best_predictions}
 
         return output_dict

@@ -203,7 +203,7 @@ class CBSConstraint(object):
         with open(class_structure_json_path) as f:
             self.class_structure = importer.import_(json.load(f))
 
-    def select_state_func(self, beam_prediction, beam_score, imageID):
+    def select_state_func(self, beam_prediction, beam_score, image_id):
         max_step = beam_prediction.size(-1)
         selected_indices = torch.argmax(beam_score[:, 4:8, 0], dim=1)
         selected_indices += (
@@ -219,10 +219,10 @@ class CBSConstraint(object):
 
         top_two_beam_prediction = top_two_beam_prediction.cpu().detach().numpy()
         beam_prediction = beam_prediction.cpu().detach().numpy()
-        imageID = imageID.cpu().detach().numpy().tolist()
+        image_id = image_id.cpu().detach().numpy().tolist()
 
         pred = []
-        for i, ID in enumerate(imageID):
+        for i, ID in enumerate(image_id):
             label_num = self.obj_num[ID]
             if label_num >= 2:
                 # Two labels must be satisfied together
@@ -346,7 +346,7 @@ class FreeConstraint(object):
     def __init__(self, output_size):
         self.M = _CBSMatrix(output_size)
 
-    def select_state_func(self, beam_prediction, beam_score, imageID):
+    def select_state_func(self, beam_prediction, beam_score, image_id):
         return beam_prediction[:, 0, 0]
 
     def get_state_matrix(self, image_id):

@@ -14,11 +14,13 @@ from allennlp.data import Vocabulary
 from updown.config import Config
 from updown.data.datasets import TrainingDataset, EvaluationDataset
 from updown.models import UpDownCaptioner
+from updown.modules import FreeConstraint, CBSConstraint
 from updown.types import Prediction
 from updown.utils.checkpointing import CheckpointManager
 from updown.utils.common import cycle
 from updown.utils.evalai import NocapsEvaluator
-from updown.modules import FreeConstraint, CBSConstraint
+import updown.utils.cbs as cbs_utils
+
 
 parser = argparse.ArgumentParser("Train an UpDown Captioner on COCO train2017 split.")
 parser.add_argument(
@@ -105,13 +107,12 @@ if __name__ == "__main__":
     # --------------------------------------------------------------------------------------------
 
     vocabulary = Vocabulary.from_files(_C.DATA.VOCABULARY)
-    with open(_C.DATA.CBS_OPEN_IMAGE_WORD_FORM) as out:
-        for line in out:
-            line = line.strip()
-            items = line.split('\t')
-            for cls_name in items[1].split(','):
-                for w in cls_name.split():
-                    vocabulary.add_token_to_namespace(w)
+
+    # If we wish to use CBS during evaluation or inference, expand the vocabulary and add
+    # constraint words derived from Open Images classes.
+    if _C.MODEL.USE_CBS:
+        vocabulary = cbs_utils.add_constraint_words_to_vocabulary(vocabulary)
+
     if _C.MODEL.USE_CBS:
         constraint = CBSConstraint(_C.DATA.CBS_VAL_OBJECTS, \
             _C.DATA.CBS_OPEN_IMAGE_CLS_PATH, \

@@ -13,10 +13,10 @@ from allennlp.data import Vocabulary
 from updown.config import Config
 from updown.data.datasets import EvaluationDataset
 from updown.models import UpDownCaptioner
+from updown.modules import FreeConstraint, CBSConstraint
 from updown.types import Prediction
 from updown.utils.evalai import NocapsEvaluator
-
-from updown.modules import FreeConstraint, CBSConstraint
+import updown.utils.cbs as cbs_utils
 
 
 parser = argparse.ArgumentParser(
@@ -88,6 +88,11 @@ if __name__ == "__main__":
 
     vocabulary = Vocabulary.from_files(_C.DATA.VOCABULARY)
 
+    # If we wish to use CBS during evaluation or inference, expand the vocabulary and add
+    # constraint words derived from Open Images classes.
+    if _C.MODEL.USE_CBS:
+        vocabulary = cbs_utils.add_constraint_words_to_vocabulary(vocabulary)
+
     eval_dataset = EvaluationDataset(
         image_features_h5path=_C.DATA.TEST_FEATURES if not _A.run_val else _C.DATA.VAL_FEATURES, in_memory=_A.in_memory
     )
@@ -98,14 +103,6 @@ if __name__ == "__main__":
         num_workers=_A.cpu_workers,
         collate_fn=eval_dataset.collate_fn,
     )
-
-    with open(_C.DATA.CBS_OPEN_IMAGE_WORD_FORM) as out:
-        for line in out:
-            line = line.strip()
-            items = line.split('\t')
-            for cls_name in items[1].split(','):
-                for w in cls_name.split():
-                    vocabulary.add_token_to_namespace(w)
 
     if _C.MODEL.USE_CBS:
         constraint = CBSConstraint(_C.DATA.CBS_TEST_OBJECTS if not _A.run_val else _C.DATA.CBS_VAL_OBJECTS, \

@@ -8,10 +8,8 @@ from torch.nn import functional as F
 from allennlp.data import Vocabulary
 from allennlp.nn.util import add_sentence_boundary_token_ids, sequence_cross_entropy_with_logits
 
-from updown.modules import UpDownCell
-from updown.modules import ConstrainedBeamSearch
-
-from torchtext.vocab import GloVe
+from updown.modules import UpDownCell, ConstrainedBeamSearch
+import updown.utils.cbs as cbs_utils
 
 
 class UpDownCaptioner(nn.Module):
@@ -58,6 +56,7 @@ class UpDownCaptioner(nn.Module):
         constraint,
         max_caption_length: int = 20,
         beam_size: int = 1,
+        use_cbs: bool = True,
     ) -> None:
         super().__init__()
         self._vocabulary = vocabulary
@@ -72,17 +71,30 @@ class UpDownCaptioner(nn.Module):
         self._pad_index = vocabulary.get_token_index("@@UNKNOWN@@")
         self._boundary_index = vocabulary.get_token_index("@@BOUNDARY@@")
 
-        self._embedding_layer = nn.Embedding(
-            self.vocab_size, embedding_size, padding_idx=self._pad_index
-        )
+        if use_cbs:
+            assert self.embedding_size == 300, "Size of word embedding vectors should be 300 "
+            f" (GloVe) while using CBS. Found {self.embedding_size} instead."
+
+            # Initialize embedding layer with GloVe embeddings and freeze it if decoding
+            # using Constrained Beam Search.
+            glove_vectors = cbs_utils.initialize_glove(self._vocabulary)
+            self._embedding_layer = nn.Embedding.from_pretrained(
+                glove_vectors, freeze=True, padding_idx=self._pad_index
+            )
+        else:
+            self._embedding_layer = nn.Embedding(
+                self.vocab_size, embedding_size, padding_idx=self._pad_index
+            )
 
         self._updown_cell = UpDownCell(
             image_feature_size, embedding_size, hidden_size, attention_projection_size
         )
-
-        self.to_glove = nn.Linear(hidden_size, self.embedding_size)
+        self._output_projection = nn.Linear(hidden_size, self.embedding_size)
         self._output_layer = nn.Linear(self.embedding_size, self.vocab_size, bias=False)
         self._log_softmax = nn.LogSoftmax(dim=1)
+
+        # Tie the input and output word embeddings.
+        self._output_layer.weight = self._embedding_layer.weight
 
         # We use beam search to find the most likely caption during inference.
         self._beam_size = beam_size
@@ -92,35 +104,9 @@ class UpDownCaptioner(nn.Module):
             beam_size=beam_size,
             per_node_beam_size=beam_size // 2,
         )
-        self._fc = constraint
         self._max_caption_length = max_caption_length
 
-        self._initialize_glove()
-
-    def _initialize_glove(self):
-        assert self.embedding_size == 300
-        glove = GloVe(name="42B", dim=self.embedding_size)
-
-        caption_oov = 0
-        glove_caption_tokens = torch.zeros(self._vocabulary.get_vocab_size(), self.embedding_size)
-        for word, i in self._vocabulary.get_token_to_index_vocabulary().items():
-            if word in glove.stoi:
-                glove_caption_tokens[i] = glove.vectors[glove.stoi[word]]
-            else:  # use a random vector instead
-                caption_oov += 1
-                glove_caption_tokens[i] = 2 * torch.randn(self.embedding_size) - 1
-        print(
-            "Caption OOV: %d / %d = %.2f"
-            % (caption_oov, self.vocab_size, 100 * caption_oov / self.vocab_size)
-        )
-
-        for p in self._output_layer.parameters():
-            p.requires_grad = False
-        self._output_layer.weight.copy_(glove_caption_tokens)
-
-        for p in self._embedding_layer.parameters():
-            p.requires_grad = False
-        self._embedding_layer.weight.copy_(glove_caption_tokens)
+        self._fc = constraint
 
     def forward(
         self,

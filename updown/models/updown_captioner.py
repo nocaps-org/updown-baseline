@@ -193,10 +193,14 @@ class UpDownCaptioner(nn.Module):
 
             state_transition_matrix_list = []
             state_size_list = []
+            num_candidates_list = []
             for image_id in image_ids:
-                state_transition_matrix, state_size = self._fc.get_state_matrix(image_id)
+                state_transition_matrix, state_size, num_candidates = self._fc.get_state_matrix(
+                    image_id
+                )
                 state_transition_matrix_list.append(state_transition_matrix)
                 state_size_list.append(state_size)
+                num_candidates_list.append(num_candidates)
             max_state = max(state_size_list)
             state_transition_matrix_list = [
                 s[:, :max_state, :max_state, :] for s in state_transition_matrix_list
@@ -204,6 +208,7 @@ class UpDownCaptioner(nn.Module):
             state_transition_matrix = torch.from_numpy(
                 np.concatenate(state_transition_matrix_list, axis=0)
             ).to(start_predictions.device)
+            num_candidates = torch.tensor(num_candidates_list).to(start_predictions.device).long()
 
             # Add image features as a default argument to match callable signature acceptable by
             # beam search class (previous predictions and states only).
@@ -212,11 +217,11 @@ class UpDownCaptioner(nn.Module):
             # shape (all_top_k_predictions): (batch_size, beam_size, num_decoding_steps)
             # shape (log_probabilities): (batch_size, beam_size)
             all_top_k_predictions, log_probabilities = self._beam_search.search(
-                start_predictions, states, beam_decode_step
+                start_predictions, states, beam_decode_step, state_transition_matrix
             )
 
-            best_predictions = self._fc.select_state_func(
-                all_top_k_predictions, log_probabilities, image_ids
+            best_predictions = self._select_state_func(
+                all_top_k_predictions, log_probabilities, num_candidates
             )
 
             # Pick the first beam as predictions (normal beam search)
@@ -224,6 +229,39 @@ class UpDownCaptioner(nn.Module):
             output_dict = {"predictions": best_predictions}
 
         return output_dict
+
+    def _select_state_func(self, beam_prediction, beam_score, num_candidates: torch.Tensor):
+        # TODO (kd): fix this.
+        max_step = beam_prediction.size(-1)
+        selected_indices = torch.argmax(beam_score[:, 4:8, 0], dim=1)
+        selected_indices += (
+            torch.arange(
+                selected_indices.size(0),
+                device=selected_indices.device,
+                dtype=selected_indices.dtype,
+            )
+            * 4
+        )
+        top_two_beam_prediction = beam_prediction[:, 4:8, 0, :].contiguous().view(-1, max_step)
+        top_two_beam_prediction = top_two_beam_prediction.index_select(0, selected_indices)
+
+        top_two_beam_prediction = top_two_beam_prediction.cpu().detach().numpy()
+        beam_prediction = beam_prediction.cpu().detach().numpy()
+        num_candidates = num_candidates.cpu().detach().numpy().tolist()
+
+        pred = []
+        for i, label_num in enumerate(num_candidates):
+            if label_num >= 2:
+                # Two labels must be satisfied together
+                pred.append(top_two_beam_prediction[i])
+            elif label_num >= 1:
+                # One label must be satisfied together
+                pred.append(beam_prediction[i, 1, 0, :])
+            else:
+                # No constraint, get original beam
+                pred.append(beam_prediction[i, 0, 0, :])
+
+        return torch.from_numpy(np.array(pred, dtype=np.int64)).to(beam_score.device)
 
     def _decode_step(
         self,

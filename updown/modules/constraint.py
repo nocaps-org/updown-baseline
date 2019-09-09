@@ -197,44 +197,10 @@ class CBSConstraint(object):
                     total += len(w.split())
         print("object class word OOV %d / %d = %.2f" % (oov, total, 100 * oov / total))
 
-        self.obj_num = {}
-
         importer = OIDictImporter()
         with open(class_structure_json_path) as f:
             self.class_structure = importer.import_(json.load(f))
 
-    def select_state_func(self, beam_prediction, beam_score, image_id):
-        max_step = beam_prediction.size(-1)
-        selected_indices = torch.argmax(beam_score[:, 4:8, 0], dim=1)
-        selected_indices += (
-            torch.arange(
-                selected_indices.size(0),
-                device=selected_indices.device,
-                dtype=selected_indices.dtype,
-            )
-            * 4
-        )
-        top_two_beam_prediction = beam_prediction[:, 4:8, 0, :].contiguous().view(-1, max_step)
-        top_two_beam_prediction = top_two_beam_prediction.index_select(0, selected_indices)
-
-        top_two_beam_prediction = top_two_beam_prediction.cpu().detach().numpy()
-        beam_prediction = beam_prediction.cpu().detach().numpy()
-        image_id = image_id.cpu().detach().numpy().tolist()
-
-        pred = []
-        for i, ID in enumerate(image_id):
-            label_num = self.obj_num[ID]
-            if label_num >= 2:
-                # Two labels must be satisfied together
-                pred.append(top_two_beam_prediction[i])
-            elif label_num >= 1:
-                # one label must be satisfied together
-                pred.append(beam_prediction[i, 1, 0, :])
-            else:
-                # no constraint, get original beam
-                pred.append(beam_prediction[i, 0, 0, :])
-
-        return torch.from_numpy(np.array(pred, dtype=np.int64)).to(beam_score.device)
 
     def get_word_set(self, target):
         if target in self.oi_word_form:
@@ -273,13 +239,11 @@ class CBSConstraint(object):
             if text not in candidates:
                 candidates.append(text)
 
-        self.obj_num[image_id.item()] = len(candidates)
-
         self.M.init_matrix(26)
         for i in range(26):
             self.M.init_row(i)
 
-        start_addtional_index = 8
+        start_additional_index = 8
         level_mapping = [{3: 5, 2: 6}, {1: 6, 3: 4}, {1: 5, 2: 4}]
         for i, target in enumerate(candidates):
             word_list = target.split()
@@ -299,57 +263,54 @@ class CBSConstraint(object):
                 group_s1 = self.get_word_set(s1)
                 group_s2 = self.get_word_set(s2)
 
-                self.M.add_connect(0, start_addtional_index, group_s1)
-                self.M.add_connect(start_addtional_index, i + 1, group_s2)
-                start_addtional_index += 1
+                self.M.add_connect(0, start_additional_index, group_s1)
+                self.M.add_connect(start_additional_index, i + 1, group_s2)
+                start_additional_index += 1
 
-                self.M.add_connect(i + 4, start_addtional_index, group_s1)
-                self.M.add_connect(start_addtional_index, 7, group_s2)
-                start_addtional_index += 1
+                self.M.add_connect(i + 4, start_additional_index, group_s1)
+                self.M.add_connect(start_additional_index, 7, group_s2)
+                start_additional_index += 1
 
                 mapping = level_mapping[i]
                 for j in range(1, 4):
                     if j in mapping:
-                        self.M.add_connect(j, start_addtional_index, group_s1)
-                        self.M.add_connect(start_addtional_index, mapping[j], group_s2)
-                        start_addtional_index += 1
+                        self.M.add_connect(j, start_additional_index, group_s1)
+                        self.M.add_connect(start_additional_index, mapping[j], group_s2)
+                        start_additional_index += 1
             elif len(word_list) == 3:
                 [s1, s2, s3] = word_list
                 group_s1 = self.get_word_set(s1)
                 group_s2 = self.get_word_set(s2)
                 group_s3 = self.get_word_set(s3)
 
-                self.M.add_connect(0, start_addtional_index, group_s1)
-                self.M.add_connect(start_addtional_index, start_addtional_index + 1, group_s2)
-                self.M.add_connect(start_addtional_index + 1, i + 1, group_s3)
-                start_addtional_index += 2
+                self.M.add_connect(0, start_additional_index, group_s1)
+                self.M.add_connect(start_additional_index, start_additional_index + 1, group_s2)
+                self.M.add_connect(start_additional_index + 1, i + 1, group_s3)
+                start_additional_index += 2
 
-                self.M.add_connect(i + 4, start_addtional_index, group_s1)
-                self.M.add_connect(start_addtional_index, start_addtional_index + 1, group_s2)
-                self.M.add_connect(start_addtional_index + 1, 7, group_s3)
-                start_addtional_index += 2
+                self.M.add_connect(i + 4, start_additional_index, group_s1)
+                self.M.add_connect(start_additional_index, start_additional_index + 1, group_s2)
+                self.M.add_connect(start_additional_index + 1, 7, group_s3)
+                start_additional_index += 2
 
                 mapping = level_mapping[i]
                 for j in range(1, 4):
                     if j in mapping:
-                        self.M.add_connect(j, start_addtional_index, group_s1)
+                        self.M.add_connect(j, start_additional_index, group_s1)
                         self.M.add_connect(
-                            start_addtional_index, start_addtional_index + 1, group_s2
+                            start_additional_index, start_additional_index + 1, group_s2
                         )
-                        self.M.add_connect(start_addtional_index + 1, mapping[j], group_s3)
-                        start_addtional_index += 2
+                        self.M.add_connect(start_additional_index + 1, mapping[j], group_s3)
+                        start_additional_index += 2
 
-        return self.M.matrix, start_addtional_index
+        return self.M.matrix, start_additional_index, len(candidates)
 
 
 class FreeConstraint(object):
     def __init__(self, output_size):
         self.M = _CBSMatrix(output_size)
 
-    def select_state_func(self, beam_prediction, beam_score, image_id):
-        return beam_prediction[:, 0, 0]
-
     def get_state_matrix(self, image_id):
         self.M.init_matrix(1)
         self.M.init_row(0)
-        return self.M.matrix, 1
+        return self.M.matrix, 1, 0

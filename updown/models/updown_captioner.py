@@ -5,11 +5,11 @@ import numpy as np
 import torch
 from torch import nn
 from torch.nn import functional as F
+from torchtext.vocab import GloVe
 from allennlp.data import Vocabulary
 from allennlp.nn.util import add_sentence_boundary_token_ids, sequence_cross_entropy_with_logits
 
 from updown.modules import UpDownCell, ConstrainedBeamSearch
-import updown.utils.cbs as cbs_utils
 
 
 class UpDownCaptioner(nn.Module):
@@ -67,7 +67,7 @@ class UpDownCaptioner(nn.Module):
         self.attention_projection_size = attention_projection_size
 
         # Short hand variable names for convenience
-        self.vocab_size = vocabulary.get_vocab_size()
+        _vocab_size = vocabulary.get_vocab_size()
         self._pad_index = vocabulary.get_token_index("@@UNKNOWN@@")
         self._boundary_index = vocabulary.get_token_index("@@BOUNDARY@@")
 
@@ -77,20 +77,20 @@ class UpDownCaptioner(nn.Module):
 
             # Initialize embedding layer with GloVe embeddings and freeze it if decoding
             # using Constrained Beam Search.
-            glove_vectors = cbs_utils.initialize_glove(self._vocabulary)
+            glove_vectors = self._initialize_glove(self._vocabulary)
             self._embedding_layer = nn.Embedding.from_pretrained(
                 glove_vectors, freeze=True, padding_idx=self._pad_index
             )
         else:
             self._embedding_layer = nn.Embedding(
-                self.vocab_size, embedding_size, padding_idx=self._pad_index
+                _vocab_size, embedding_size, padding_idx=self._pad_index
             )
 
         self._updown_cell = UpDownCell(
             image_feature_size, embedding_size, hidden_size, attention_projection_size
         )
         self._output_projection = nn.Linear(hidden_size, self.embedding_size)
-        self._output_layer = nn.Linear(self.embedding_size, self.vocab_size, bias=False)
+        self._output_layer = nn.Linear(self.embedding_size, _vocab_size, bias=False)
         self._log_softmax = nn.LogSoftmax(dim=1)
 
         # Tie the input and output word embeddings.
@@ -108,7 +108,40 @@ class UpDownCaptioner(nn.Module):
 
         self._fc = constraint
 
-    def forward(
+    @staticmethod
+    def _initialize_glove(vocabulary: Vocabulary) -> torch.Tensor:
+        r"""
+        Initialize embeddings of all the tokens in a given
+        :class:`~allennlp.data.vocabulary.Vocabulary` by their GloVe vectors.
+
+        Extended Summary
+        ----------------
+        It is recommended to train an :class:`~updown.models.updown_captioner.UpDownCaptioner` with
+        frozen word embeddings when one wishes to perform Constrained Beam Search decoding during
+        inference. This is because the constraint words may not appear in caption vocabulary (out of
+        domain), and their embeddings will never be updated during training. Initializing with frozen
+        GloVe embeddings is helpful, because they capture more meaningful semantics than randomly
+        initialized embeddings.
+
+        Parameters
+        ----------
+        vocabulary: allennlp.data.vocabulary.Vocabulary
+            The vocabulary containing tokens to be initialized.
+
+        Returns
+        -------
+        torch.Tensor
+            GloVe Embeddings corresponding to tokens.
+        """
+        glove = GloVe(name="42B", dim=300)
+        glove_vectors = torch.zeros(vocabulary.get_vocab_size(), 300)
+        for word, i in vocabulary.get_token_to_index_vocabulary().items():
+            if word in glove.stoi:
+                glove_vectors[i] = glove.vectors[glove.stoi[word]]
+
+        return glove_vectors
+
+    def forward(  # type: ignore
         self,
         image_ids: torch.Tensor,
         image_features: torch.Tensor,

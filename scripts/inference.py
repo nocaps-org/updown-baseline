@@ -92,10 +92,10 @@ if __name__ == "__main__":
         vocabulary = cbs_utils.add_constraint_words_to_vocabulary(vocabulary)
 
         constraint = CBSConstraint(
+            vocabulary,
             _C.DATA.CBS_TEST_CONSTRAINTS if not _A.run_val else _C.DATA.CBS_VAL_CONSTRAINTS,
             _C.DATA.CBS_OPEN_IMAGE_WORD_FORM,
-            _C.DATA.CBS_CLASS_STRUCTURE_PATH,
-            vocabulary,
+            _C.DATA.CBS_CLASS_HIERARCHY_PATH,
         )
     else:
         constraint = FreeConstraint(vocabulary.get_vocab_size())

@@ -1,8 +1,8 @@
 import csv
 import json
+from typing import Dict, List, Optional
 
 import anytree
-from anytree.search import findall
 import numpy as np
 import torch
 from torchtext.vocab import GloVe
@@ -48,104 +48,131 @@ def add_constraint_words_to_vocabulary(
     return vocabulary
 
 
-def initialize_glove(vocabulary: Vocabulary, namespace: str = "tokens") -> torch.Tensor:
-    r"""
-    Initialize embeddings of all the tokens in a given
-    :class:`~allennlp.data.vocabulary.Vocabulary` by their GloVe vectors.
+class ConstraintFilter(object):
 
-    Extended Summary
-    ----------------
-    It is recommended to train an :class:`~updown.models.updown_captioner.UpDownCaptioner` with
-    frozen word embeddings when one wishes to perform Constrained Beam Search decoding during
-    inference. This is because the constraint words may not appear in caption vocabulary (out of
-    domain), and their embeddings will never be updated during training. Initializing with frozen
-    GloVe embeddings is helpful, because they capture more meaningful semantics than randomly
-    initialized embeddings.
-
-    Parameters
-    ----------
-    vocabulary: allennlp.data.vocabulary.Vocabulary
-        The vocabulary containing tokens to be initialized.
-    namespace: str, optional (default="tokens")
-        The namespace of :class:`~allennlp.data.vocabulary.Vocabulary` to add these words.
-
-    Returns
-    -------
-    Use this tensor to initialize :class:`~torch.nn.Embedding` layer in
-    :class:~updown.models.updown_captioner.UpDownCaptioner` as:
-
-    >>> embedding_layer = torch.nn.Embeddingfrom_pretrained(weights, freeze=True)
-    """
-    glove = GloVe(name="42B", dim=300)
-
-    caption_oov = 0
-
-    glove_vectors = torch.zeros(vocabulary.get_vocab_size(), 300)
-    for word, i in vocabulary.get_token_to_index_vocabulary().items():
-
-        # Words not in GloVe vocablary would be initialized as zero vectors.
-        if word in glove.stoi:
-            glove_vectors[i] = glove.vectors[glove.stoi[word]]
-        else:
-            caption_oov += 1
-
-    print(f"{caption_oov} out of {glove_vectors.size(0)} words were not found in GloVe.")
-    return glove_vectors
-
-
-def read_hierarchy(hierarchy_jsonpath: str) -> anytree.AnyNode:
-    def __import(data, parent=None):
-        assert isinstance(data, dict)
-        assert "parent" not in data
-        attrs = dict(data)
-        children = attrs.pop("Subcategory", []) + attrs.pop("Part", [])
-        node = AnyNode(parent=parent, **attrs)
-        for child in children:
-            __import(child, parent=node)
-        return node
-
-    data = json.load(open(hierarchy_jsonpath))
-    return __import(data)
-
-
-def nms(boxes, classes, hierarchy, thresh=0.7):
-    # Non-max suppression of overlapping boxes where score is based on 'height' in the hierarchy,
-    # defined as the number of edges on the longest path to a leaf
-
-    scores = [
-        findall(hierarchy, filter_=lambda node: node.LabelName in (object_class))[0].height
-        for object_class in classes
+    # fmt: off
+    BLACKLIST: List[str] = [
+        "auto part", "bathroom accessory", "bicycle wheel", "boy", "building", "clothing",
+        "door handle", "fashion accessory", "footwear", "girl", "hiking equipment", "human arm",
+        "human beard", "human body", "human ear", "human eye", "human face", "human foot",
+        "human hair", "human hand", "human head", "human leg", "human mouth", "human nose",
+        "land vehicle", "mammal", "man", "person", "personal care", "plant", "plumbing fixture",
+        "seat belt", "skull", "sports equipment", "tire", "tree", "vehicle registration plate",
+        "wheel", "woman"
     ]
+    # fmt: on
 
-    x1 = boxes[:, 0]
-    y1 = boxes[:, 1]
-    x2 = boxes[:, 2]
-    y2 = boxes[:, 3]
+    REPLACEMENTS: Dict[str, str] = {
+        "band-aid": "bandaid",
+        "wood-burning stove": "wood burning stove",
+        "kitchen & dining room table": "table",
+        "salt and pepper shakers": "salt and pepper",
+        "power plugs and sockets": "power plugs",
+        "luggage and bags": "luggage",
+    }
 
-    areas = (x2 - x1 + 1) * (y2 - y1 + 1)
+    def __init__(self, hierarchy_jsonpath: str, nms_threshold: float = 0.85, topk: int = 3):
+        def __read_hierarchy(node: anytree.AnyNode, parent: Optional[anytree.AnyNode] = None):
+            # Cast an ``anytree.AnyNode`` (after first level of recursion) to dict.
+            attributes = dict(node)
+            children = attributes.pop("Subcategory", [])
 
-    scores = np.array(scores)
-    order = scores.argsort()
+            # Remove blacklisted object classes.
+            children = [child for child in children if child["LabelName"] not in self.BLACKLIST]
+            node = anytree.AnyNode(parent=parent, **attributes)
+            for child in children:
+                __read_hierarchy(child, parent=node)
+            return node
 
-    keep = []
-    while order.size > 0:
-        i = order[0]
-        keep.append(i)
-        xx1 = np.maximum(x1[i], x1[order[1:]])
-        yy1 = np.maximum(y1[i], y1[order[1:]])
-        xx2 = np.minimum(x2[i], x2[order[1:]])
-        yy2 = np.minimum(y2[i], y2[order[1:]])
+        # Read the object class hierarchy as a tree, to make searching easier.
+        self._hierarchy = __read_hierarchy(json.load(open(hierarchy_jsonpath)))
 
-        w = np.maximum(0.0, xx2 - xx1 + 1)
-        h = np.maximum(0.0, yy2 - yy1 + 1)
-        inter = w * h
+        self._nms_threshold = nms_threshold
+        self._topk = topk
 
-        # check the score, objects with smaller or equal number of layers cannot be removed.
-        keep_condition = np.logical_or(
-            scores[order[1:]] <= scores[i], inter / (areas[i] + areas[order[1:]] - inter) <= thresh
+    def __call__(self, boxes: np.ndarray, class_names: List[str], scores: np.ndarray) -> List[str]:
+
+        # Remove padding boxes (which have prediction confidence score = 0), and remove boxes
+        # corresponding to all blacklisted classes. These will never become CBS constraints.
+        keep_indices = []
+        for i in range(len(class_names)):
+            if scores[i] > 0 and class_names[i] not in self.BLACKLIST:
+                keep_indices.append(i)
+
+        boxes = boxes[keep_indices]
+        class_names = [class_names[i] for i in keep_indices]
+        scores = scores[keep_indices]
+
+        # Perform non-maximum suppression according to category hierarchy. For example, for highly
+        # overlapping boxes on a dog, "dog" suppresses "animal".
+        keep_indices = self._nms(boxes, class_names)
+        boxes = boxes[keep_indices]
+        class_names = [class_names[i] for i in keep_indices]
+        scores = scores[keep_indices]
+
+        # Retain top-k constraints based on prediction confidence score.
+        class_names_and_scores = sorted(list(zip(class_names, scores)), key=lambda t: -t[1])
+        class_names_and_scores = class_names_and_scores[: self._topk]
+
+        # Replace class name according to ``self.REPLACEMENTS``.
+        class_names = [self.REPLACEMENTS.get(t[0], t[0]) for t in class_names_and_scores]
+
+        # Drop duplicates.
+        class_names = list(set(class_names))
+        return class_names
+
+    def _nms(self, boxes: np.ndarray, class_names: List[str]):
+        r"""
+        Perform non-maximum suppression of overlapping boxes, where the score is based on "height"
+        of class in the hierarchy.
+        """
+
+        # For object class, get the height of its corresponding node in the hierarchy tree.
+        # Less height => finer-grained class name => higher score.
+        heights = np.array(
+            [
+                anytree.search.findall(self._hierarchy, lambda node: node.LabelName in c)[0].height
+                for c in class_names
+            ]
         )
+        # Get a sorting of the heights in ascending order, i.e. higher scores first.
+        score_order = heights.argsort()
 
-        inds = np.where(keep_condition)[0]
-        order = order[inds + 1]
+        # Compute areas for calculating intersection over union. Add 1 to avoid division by zero
+        # for zero area (padding/dummy) boxes.
+        x1, y1, x2, y2 = boxes[:, 0], boxes[:, 1], boxes[:, 2], boxes[:, 3]
+        areas = (x2 - x1 + 1) * (y2 - y1 + 1)
 
-    return keep
+        # Fill "keep_boxes" with indices of boxes to keep, move from left to right in
+        # ``score_order``, keep current box index (score_order[0]) and suppress (discard) other
+        # indices of boxes having lower IoU threshold with current box from ``score_order``.
+        # list. Note the order is a sorting of indices according to scores.
+        keep_box_indices = []
+
+        while score_order.size > 0:
+            # Keep the index of box under consideration.
+            current_index = score_order[0]
+            keep_box_indices.append(current_index)
+
+            # For the box we just decided to keep (score_order[0]), compute its IoU with other
+            # boxes (score_order[1:]).
+            xx1 = np.maximum(x1[score_order[0]], x1[score_order[1:]])
+            yy1 = np.maximum(y1[score_order[0]], y1[score_order[1:]])
+            xx2 = np.minimum(x2[score_order[0]], x2[score_order[1:]])
+            yy2 = np.minimum(y2[score_order[0]], y2[score_order[1:]])
+
+            intersection = np.maximum(0.0, xx2 - xx1 + 1) * np.maximum(0.0, yy2 - yy1 + 1)
+            union = areas[score_order[0]] + areas[score_order[1:]] - intersection
+
+            # Perform NMS for IoU >= 0.85. Check score, boxes corresponding to object
+            # classes with smaller/equal height in hierarchy cannot be suppressed.
+            keep_condition = np.logical_or(
+                heights[score_order[1:]] >= heights[score_order[0]],
+                intersection / union <= self._nms_threshold,
+            )
+
+            # Only keep the boxes under consideration for next iteration.
+            score_order = score_order[1:]
+            score_order = score_order[np.where(keep_condition)[0]]
+
+        return keep_box_indices

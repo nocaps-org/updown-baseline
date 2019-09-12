@@ -44,9 +44,7 @@ parser.add_argument(
 parser.add_argument(
     "--in-memory", action="store_true", help="Whether to load image features in memory."
 )
-parser.add_argument(
-    "--run-val", action="store_true", help="Whether to run val data"
-)
+parser.add_argument("--run-val", action="store_true", help="Whether to run val data")
 parser.add_argument(
     "--checkpoint-path", required=True, help="Path to load checkpoint and run inference on."
 )
@@ -93,8 +91,18 @@ if __name__ == "__main__":
     if _C.MODEL.USE_CBS:
         vocabulary = cbs_utils.add_constraint_words_to_vocabulary(vocabulary)
 
+        constraint = CBSConstraint(
+            _C.DATA.CBS_TEST_CONSTRAINTS if not _A.run_val else _C.DATA.CBS_VAL_CONSTRAINTS,
+            _C.DATA.CBS_OPEN_IMAGE_WORD_FORM,
+            _C.DATA.CBS_CLASS_STRUCTURE_PATH,
+            vocabulary,
+        )
+    else:
+        constraint = FreeConstraint(vocabulary.get_vocab_size())
+
     eval_dataset = EvaluationDataset(
-        image_features_h5path=_C.DATA.TEST_FEATURES if not _A.run_val else _C.DATA.VAL_FEATURES, in_memory=_A.in_memory
+        image_features_h5path=_C.DATA.TEST_FEATURES if not _A.run_val else _C.DATA.VAL_FEATURES,
+        in_memory=_A.in_memory,
     )
     eval_dataloader = DataLoader(
         eval_dataset,
@@ -104,15 +112,6 @@ if __name__ == "__main__":
         collate_fn=eval_dataset.collate_fn,
     )
 
-    if _C.MODEL.USE_CBS:
-        constraint = CBSConstraint(_C.DATA.CBS_TEST_OBJECTS if not _A.run_val else _C.DATA.CBS_VAL_OBJECTS, \
-            _C.DATA.CBS_OPEN_IMAGE_CLS_PATH, \
-            _C.DATA.CBS_OPEN_IMAGE_WORD_FORM, \
-            _C.DATA.CBS_CLASS_STRUCTURE_PATH,
-            vocabulary)
-    else:
-        constraint = FreeConstraint(vocabulary.get_vocab_size())
-
     model = UpDownCaptioner(
         vocabulary,
         image_feature_size=_C.MODEL.IMAGE_FEATURE_SIZE,
@@ -121,7 +120,7 @@ if __name__ == "__main__":
         attention_projection_size=_C.MODEL.ATTENTION_PROJECTION_SIZE,
         beam_size=_C.MODEL.BEAM_SIZE,
         max_caption_length=_C.DATA.MAX_CAPTION_LENGTH,
-        constraint=constraint
+        constraint=constraint,
     ).to(device)
 
     # Load checkpoint to run inference.

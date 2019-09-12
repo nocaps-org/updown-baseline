@@ -113,15 +113,15 @@ if __name__ == "__main__":
     if _C.MODEL.USE_CBS:
         vocabulary = cbs_utils.add_constraint_words_to_vocabulary(vocabulary)
 
-    if _C.MODEL.USE_CBS:
-        constraint = CBSConstraint(_C.DATA.CBS_VAL_OBJECTS, \
-            _C.DATA.CBS_OPEN_IMAGE_CLS_PATH, \
-            _C.DATA.CBS_OPEN_IMAGE_WORD_FORM, \
+        constraint = CBSConstraint(
+            _C.DATA.CBS_VAL_CONSTRAINTS,
+            _C.DATA.CBS_OPEN_IMAGE_WORD_FORM,
             _C.DATA.CBS_CLASS_STRUCTURE_PATH,
-            vocabulary)
+            vocabulary,
+        )
     else:
         constraint = FreeConstraint(vocabulary.get_vocab_size())
-        
+
     train_dataset = TrainingDataset(
         vocabulary,
         image_features_h5path=_C.DATA.TRAIN_FEATURES,
@@ -159,7 +159,7 @@ if __name__ == "__main__":
         attention_projection_size=_C.MODEL.ATTENTION_PROJECTION_SIZE,
         beam_size=_C.MODEL.BEAM_SIZE,
         max_caption_length=_C.DATA.MAX_CAPTION_LENGTH,
-        constraint=constraint
+        constraint=constraint,
     ).to(device)
 
     if len(_A.gpu_ids) > 1 and -1 not in _A.gpu_ids:
@@ -240,7 +240,9 @@ if __name__ == "__main__":
 
                     with torch.no_grad():
                         # shape: (batch_size, max_caption_length)
-                        batch_predictions = model(batch["image_id"], batch["image_features"])["predictions"]
+                        batch_predictions = model(batch["image_id"], batch["image_features"])[
+                            "predictions"
+                        ]
 
                     for i, image_id in enumerate(batch["image_id"]):
                         instance_predictions = batch_predictions[i, :]

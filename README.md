@@ -130,12 +130,10 @@ evalai set_token <your_token_here>
 If you wish to decode using [Constrained Beam Search][8], download Open Images meta data files
 into `data/cbs`:
 
-1. [Object classes](https://storage.googleapis.com/openimages/2018_04/class-descriptions-boxable.csv):
-   A CSV file containing information about the 600 object classes in Open Images.
-2. [Object class hierarchy](https://www.dropbox.com/s/hqi0hnec00jasyk/bbox_labels_600_hierarchy_readable.json):
+1. [Object class hierarchy](https://www.dropbox.com/s/hqi0hnec00jasyk/bbox_labels_600_hierarchy_readable.json):
    A hierarchy of object classes [declared by Open Images][9]. Our file is in a format which is
    more human-readable.
-3. [Object class to Constraint Words mapping](https://www.dropbox.com/s/sszxpown3l7rhy4/oi_concepts_to_words.txt):
+2. [Constraint words for object classes](https://www.dropbox.com/s/sszxpown3l7rhy4/oi_concepts_to_words.txt):
    Includes singular, plural word forms for object classes, which could be fit as constraints
    while decoding.
 

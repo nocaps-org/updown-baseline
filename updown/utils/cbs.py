@@ -1,9 +1,12 @@
 import csv
+import json
 
-from allennlp.data import Vocabulary
+import anytree
+from anytree.search import findall
+import numpy as np
 import torch
-
 from torchtext.vocab import GloVe
+from allennlp.data import Vocabulary
 
 
 def add_constraint_words_to_vocabulary(
@@ -45,9 +48,7 @@ def add_constraint_words_to_vocabulary(
     return vocabulary
 
 
-def initialize_glove(
-    vocabulary: Vocabulary, namespace: str = "tokens"
-) -> torch.Tensor:
+def initialize_glove(vocabulary: Vocabulary, namespace: str = "tokens") -> torch.Tensor:
     r"""
     Initialize embeddings of all the tokens in a given
     :class:`~allennlp.data.vocabulary.Vocabulary` by their GloVe vectors.
@@ -90,3 +91,61 @@ def initialize_glove(
 
     print(f"{caption_oov} out of {glove_vectors.size(0)} words were not found in GloVe.")
     return glove_vectors
+
+
+def read_hierarchy(hierarchy_jsonpath: str) -> anytree.AnyNode:
+    def __import(data, parent=None):
+        assert isinstance(data, dict)
+        assert "parent" not in data
+        attrs = dict(data)
+        children = attrs.pop("Subcategory", []) + attrs.pop("Part", [])
+        node = AnyNode(parent=parent, **attrs)
+        for child in children:
+            __import(child, parent=node)
+        return node
+
+    data = json.load(open(hierarchy_jsonpath))
+    return __import(data)
+
+
+def nms(boxes, classes, hierarchy, thresh=0.7):
+    # Non-max suppression of overlapping boxes where score is based on 'height' in the hierarchy,
+    # defined as the number of edges on the longest path to a leaf
+
+    scores = [
+        findall(hierarchy, filter_=lambda node: node.LabelName in (object_class))[0].height
+        for object_class in classes
+    ]
+
+    x1 = boxes[:, 0]
+    y1 = boxes[:, 1]
+    x2 = boxes[:, 2]
+    y2 = boxes[:, 3]
+
+    areas = (x2 - x1 + 1) * (y2 - y1 + 1)
+
+    scores = np.array(scores)
+    order = scores.argsort()
+
+    keep = []
+    while order.size > 0:
+        i = order[0]
+        keep.append(i)
+        xx1 = np.maximum(x1[i], x1[order[1:]])
+        yy1 = np.maximum(y1[i], y1[order[1:]])
+        xx2 = np.minimum(x2[i], x2[order[1:]])
+        yy2 = np.minimum(y2[i], y2[order[1:]])
+
+        w = np.maximum(0.0, xx2 - xx1 + 1)
+        h = np.maximum(0.0, yy2 - yy1 + 1)
+        inter = w * h
+
+        # check the score, objects with smaller or equal number of layers cannot be removed.
+        keep_condition = np.logical_or(
+            scores[order[1:]] <= scores[i], inter / (areas[i] + areas[order[1:]] - inter) <= thresh
+        )
+
+        inds = np.where(keep_condition)[0]
+        order = order[inds + 1]
+
+    return keep

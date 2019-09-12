@@ -1,11 +1,12 @@
-import numpy as np
-import torch
-from allennlp.data import Vocabulary
-import h5py
 import json
+from typing import Any, Dict, List
 
-from anytree import AnyNode
-from anytree.search import findall
+import h5py
+import numpy as np
+from allennlp.data import Vocabulary
+
+import updown.utils.cbs as cbs_utils
+
 
 BLACKLIST_CATEGORIES = [
     "Tree",
@@ -59,27 +60,6 @@ replacements = {
 }
 
 
-class OIDictImporter(object):
-    """ Importer that works on Open Images json hierarchy """
-
-    def __init__(self, nodecls=AnyNode):
-        self.nodecls = nodecls
-
-    def import_(self, data):
-        """Import tree from `data`."""
-        return self.__import(data)
-
-    def __import(self, data, parent=None):
-        assert isinstance(data, dict)
-        assert "parent" not in data
-        attrs = dict(data)
-        children = attrs.pop("Subcategory", []) + attrs.pop("Part", [])
-        node = self.nodecls(parent=parent, **attrs)
-        for child in children:
-            self.__import(child, parent=node)
-        return node
-
-
 class _CBSMatrix(object):
     def __init__(self, vocab_size: int):
         self._matrix = None
@@ -113,76 +93,37 @@ def suppress_parts(scores, classes):
     return keep
 
 
-def nms(dets, classes, hierarchy, thresh=0.7):
-    # Non-max suppression of overlapping boxes where score is based on 'height' in the hierarchy,
-    # defined as the number of edges on the longest path to a leaf
-
-    scores = [
-        findall(hierarchy, filter_=lambda node: node.LabelName in (cls))[0].height
-        for cls in classes
-    ]
-
-    x1 = dets[:, 0]
-    y1 = dets[:, 1]
-    x2 = dets[:, 2]
-    y2 = dets[:, 3]
-
-    areas = (x2 - x1 + 1) * (y2 - y1 + 1)
-
-    scores = np.array(scores)
-    order = scores.argsort()
-
-    keep = []
-    while order.size > 0:
-        i = order[0]
-        keep.append(i)
-        xx1 = np.maximum(x1[i], x1[order[1:]])
-        yy1 = np.maximum(y1[i], y1[order[1:]])
-        xx2 = np.minimum(x2[i], x2[order[1:]])
-        yy2 = np.minimum(y2[i], y2[order[1:]])
-
-        w = np.maximum(0.0, xx2 - xx1 + 1)
-        h = np.maximum(0.0, yy2 - yy1 + 1)
-        inter = w * h
-
-        # check the score, objects with smaller or equal number of layers cannot be removed.
-        keep_condition = np.logical_or(
-            scores[order[1:]] <= scores[i], inter / (areas[i] + areas[order[1:]] - inter) <= thresh
-        )
-
-        inds = np.where(keep_condition)[0]
-        order = order[inds + 1]
-
-    return keep
-
-
 class CBSConstraint(object):
     def __init__(
         self,
-        features_h5path: str,
-        oi_class_path: str,
+        boxes_jsonpath: str,
         oi_word_form_path: str,
         class_structure_json_path: str,
         vocabulary: Vocabulary,
         topk: int = 3,
     ):
-        self.features_h5path = features_h5path
+        self.boxes_jsonpath = boxes_jsonpath
+        boxes = json.load(open(self.boxes_jsonpath))
+
         self.topk = topk
         self._vocabulary = vocabulary
         self._pad_index = vocabulary.get_token_index("@@UNKNOWN@@")
         self.M = _CBSMatrix(self._vocabulary.get_vocab_size())
 
-        self.boxes_h5 = h5py.File(self.features_h5path, "r")
-        image_id_np = np.array(self.boxes_h5["image_id"])
-        self._map = {image_id_np[index]: index for index in range(image_id_np.shape[0])}
+        # Form a mapping between Image ID and corresponding boxes from OI Detector.
+        self._image_id_to_boxes: Dict[int, Any] = {}
 
-        self.oi_class_list = [None]
-        with open(oi_class_path) as out:
-            for line in out:
-                self.oi_class_list.append(line.strip().split(",")[1])
+        for ann in boxes["annotations"]:
+            if ann["image_id"] not in self._image_id_to_boxes:
+                self._image_id_to_boxes[ann["image_id"]] = []
 
-        oov, total = 0, 0
-        self.oi_word_form = {}
+            self._image_id_to_boxes[ann["image_id"]].append(ann)
+
+        # A list of Open Image object classes. Index of a class in this list is its Open Images
+        # class ID. Open Images class IDs start from 1, so zero-th element is "__background__".
+        self.oi_class_list = [c["name"] for c in boxes["categories"]]
+
+        self.oi_word_form: Dict[str, List[str]] = {}
         with open(oi_word_form_path) as out:
             for line in out:
                 line = line.strip()
@@ -190,17 +131,7 @@ class CBSConstraint(object):
                 w_list = items[1].split(",")
                 self.oi_word_form[items[0]] = w_list
 
-                for w in w_list:
-                    for ch in w.split():
-                        ch_index = self._vocabulary.get_token_index(ch)
-                        oov += 1 if ch_index == self._pad_index else 0
-                    total += len(w.split())
-        print("object class word OOV %d / %d = %.2f" % (oov, total, 100 * oov / total))
-
-        importer = OIDictImporter()
-        with open(class_structure_json_path) as f:
-            self.class_structure = importer.import_(json.load(f))
-
+        self.class_structure = cbs_utils.read_hierarchy(class_structure_json_path)
 
     def get_word_set(self, target):
         if target in self.oi_word_form:
@@ -211,19 +142,23 @@ class CBSConstraint(object):
         group_w = [self._vocabulary.get_token_index(w) for w in group_w]
         return [v for v in group_w if not (v == self._pad_index)]
 
-    def get_state_matrix(self, image_id: int):
-        i = self._map[image_id.item()]
+    def get_state_matrix(self, image_id):
 
-        box = self.boxes_h5["boxes"][i]
-        box_cls = self.boxes_h5["classes"][i]
-        box_score = self.boxes_h5["scores"][i]
+        # List of bounding box detections from OI detector in COCO format.
+        bbox_anns = self._image_id_to_boxes[int(image_id)]
+
+        box = np.array([ann["bbox"] for ann in bbox_anns])
+        box_cls = np.array([ann["category_id"] for ann in bbox_anns])
+        box_score = np.array([ann.get("score", 1) for ann in bbox_anns])
 
         keep = suppress_parts(box_score, [self.oi_class_list[cls_] for cls_ in box_cls])
         box = box[keep]
         box_cls = box_cls[keep]
         box_score = box_score[keep]
 
-        keep = nms(box, [self.oi_class_list[cls_] for cls_ in box_cls], self.class_structure)
+        keep = cbs_utils.nms(
+            box, [self.oi_class_list[cls_] for cls_ in box_cls], self.class_structure
+        )
         box = box[keep]
         box_cls = box_cls[keep]
         box_score = box_score[keep]

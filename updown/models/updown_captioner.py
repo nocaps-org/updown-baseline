@@ -97,7 +97,6 @@ class UpDownCaptioner(nn.Module):
         self._output_layer.weight = self._embedding_layer.weight
 
         # We use beam search to find the most likely caption during inference.
-        self._beam_size = beam_size
         self._beam_search = ConstrainedBeamSearch(
             self._boundary_index,
             max_steps=max_caption_length,
@@ -312,23 +311,45 @@ class UpDownCaptioner(nn.Module):
         image_features: torch.Tensor
             A tensor of shape ``(batch_size, num_boxes, image_feature_size)``.
         previous_predictions: torch.Tensor
-            A tensor of shape ``(batch_size, )`` containing tokens predicted at previous
-            time-step -- one for each instances in a batch.
+            A tensor of shape ``(batch_size * net_beam_size, )`` containing tokens predicted at
+            previous time-step -- one for each beam, for each instances in a batch.
+            ``net_beam_size`` is:
+              - 1 during teacher forcing (training)
+              - ``beam_size`` for regular :class:`allennlp.nn.beam_search.BeamSearch`
+              - ``beam_size * num_states`` for :class:`updown.modules.cbs.ConstrainedBeamSearch`
+
         states: [Dict[str, torch.Tensor], optional (default = None)
             LSTM states of the :class:`~updown.modules.updown_cell.UpDownCell`. These are
             initialized as zero tensors if not provided (at first time-step).
         """
-        # shape: (batch_size, )
+
+        net_beam_size = 1
+
+        # Expand and repeat image features while doing beam search (during inference).
+        if not self.training and image_features.size(0) != previous_predictions.size(0):
+
+            batch_size, num_boxes, image_feature_size = image_features.size()
+            net_beam_size = int(previous_predictions.size(0) / batch_size)
+
+            # Add (net) beam dimension and repeat image features.
+            image_features = image_features.unsqueeze(1).repeat(1, net_beam_size, 1, 1)
+
+            # shape: (batch_size * net_beam_size, num_boxes, image_feature_size)
+            image_features = image_features.view(
+                batch_size * net_beam_size, num_boxes, image_feature_size
+            )
+
+        # shape: (batch_size * net_beam_size, )
         current_input = previous_predictions
 
-        # shape: (batch_size, embedding_size)
+        # shape: (batch_size * net_beam_size, embedding_size)
         token_embeddings = self._embedding_layer(current_input)
 
-        # shape: (batch_size, hidden_size)
+        # shape: (batch_size * net_beam_size, hidden_size)
         updown_output, states = self._updown_cell(image_features, token_embeddings, states)
 
-        # shape: (batch_size, vocab_size)
-        updown_output = torch.tanh(self.to_glove(updown_output))
+        # shape: (batch_size * net_beam_size, vocab_size)
+        updown_output = torch.tanh(self._output_projection(updown_output))
         output_logits = self._output_layer(updown_output)
 
         # Return logits while training, to further calculate cross entropy loss.

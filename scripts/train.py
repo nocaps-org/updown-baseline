@@ -111,8 +111,9 @@ if __name__ == "__main__":
     # If we wish to use CBS during evaluation or inference, expand the vocabulary and add
     # constraint words derived from Open Images classes.
     if _C.MODEL.USE_CBS:
-        vocabulary = cbs_utils.add_constraint_words_to_vocabulary(vocabulary)
-
+        vocabulary = cbs_utils.add_constraint_words_to_vocabulary(
+            vocabulary, constraint_words_filepath=_C.DATA.CBS_OPEN_IMAGE_WORD_FORM
+        )
         constraint = CBSConstraint(
             vocabulary,
             _C.DATA.CBS_VAL_CONSTRAINTS,

@@ -127,9 +127,9 @@ class Config(object):
         self._C.DATA = CN()
         self._C.DATA.VOCABULARY = "data/vocabulary"
 
-        self._C.DATA.TRAIN_FEATURES = "data/coco_train2017_resnet101_faster_rcnn_genome_adaptive.h5"
-        self._C.DATA.VAL_FEATURES = "data/nocaps_val_resnet101_faster_rcnn_genome_adaptive.h5"
-        self._C.DATA.TEST_FEATURES = "data/nocaps_test_resnet101_faster_rcnn_genome_adaptive.h5"
+        self._C.DATA.TRAIN_FEATURES = "data/coco_train2017_vg_detector_features_adaptive.h5"
+        self._C.DATA.VAL_FEATURES = "data/nocaps_val_vg_detector_features_adaptive.h5"
+        self._C.DATA.TEST_FEATURES = "data/nocaps_test_vg_detector_features_adaptive.h5"
 
         self._C.DATA.TRAIN_CAPTIONS = "data/coco/captions_train2017.json"
 
@@ -140,7 +140,7 @@ class Config(object):
         self._C.DATA.CBS_VAL_CONSTRAINTS = "data/nocaps_val_oi_detector_boxes.json"
         self._C.DATA.CBS_TEST_CONSTRAINTS = "data/nocaps_test_oi_detector_boxes.json"
         self._C.DATA.CBS_OPEN_IMAGE_WORD_FORM = "data/cbs/oi_concepts_to_words.txt"
-        self._C.DATA.CBS_CLASS_STRUCTURE_PATH = "data/cbs/bbox_labels_600_hierarchy_readable.json"
+        self._C.DATA.CBS_CLASS_HIERARCHY_PATH = "data/cbs/bbox_labels_600_hierarchy_readable.json"
 
         self._C.DATA.MAX_CAPTION_LENGTH = 20
 

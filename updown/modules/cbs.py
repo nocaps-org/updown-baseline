@@ -44,27 +44,24 @@ class ConstrainedBeamSearch(object):
         # shape: (batch_size, state_size, state_size, vocab_size)
         batch_size, state_size, _, vocab_size = state_transition_matrix.size()
 
-        device_id = start_predictions.get_device()
-        self.VERY_NEGATIVE_TENSOR = self.VERY_NEGATIVE_TENSOR.to(device_id)
         predictions = []
         backpointers = []
 
         batch_size = start_predictions.size(0)
 
         start_class_log_probabilities, state = step(start_predictions, start_state)
-        self.num_classes = start_class_log_probabilities.size(-1)
-        state_prediction = start_class_log_probabilities.view(
-            batch_size, 1, self.num_classes
-        ).expand(batch_size, state_size, self.num_classes)
+        num_classes = start_class_log_probabilities.size(-1)
 
-        state_prediction = torch.where(
-            state_transition_matrix[:, self.init_state, :, :],
-            state_prediction,
-            self.VERY_NEGATIVE_TENSOR,
+        start_state_predictions = start_class_log_probabilities.view(
+            batch_size, 1, num_classes
+        ).expand(batch_size, state_size, num_classes)
+
+        start_state_predictions = start_state_predictions.masked_fill(
+            1 - state_transition_matrix[:, self.init_state, :, :], -1e20
         )
 
         # (batch_size, state_size, beam_size)
-        start_top_log_probabilities, start_predicted_classes = state_prediction.topk(
+        start_top_log_probabilities, start_predicted_classes = start_state_predictions.topk(
             self.beam_size
         )
 
@@ -73,9 +70,7 @@ class ConstrainedBeamSearch(object):
 
         predictions.append(start_predicted_classes.view(batch_size, -1))
 
-        log_probs_after_end = (
-            torch.FloatTensor(1, self.num_classes).fill_(VERY_NEGATIVE_NUMBER).to(device_id)
-        )
+        log_probs_after_end = torch.full((1, num_classes), -1e20).to(start_predictions.device)
         log_probs_after_end[:, self._end_index] = 0.0
 
         state = {
@@ -84,12 +79,12 @@ class ConstrainedBeamSearch(object):
         }
 
         step_state_mask = state_transition_matrix.view(
-            batch_size, state_size, state_size, 1, self.num_classes
-        ).expand(batch_size, state_size, state_size, self.beam_size, self.num_classes)
+            batch_size, state_size, state_size, 1, num_classes
+        ).expand(batch_size, state_size, state_size, self.beam_size, num_classes)
 
         for timestep in range(self.max_steps - 1):
-            # shape: (batch_size * beam_size,)
-            last_predictions = predictions[-1].reshape(-1)
+            # shape: (batch_size * beam_size * state_size, )
+            last_predictions = predictions[-1].reshape(batch_size * self.beam_size * state_size)
 
             if (last_predictions == self._end_index).all():
                 break
@@ -98,7 +93,7 @@ class ConstrainedBeamSearch(object):
             last_predictions_expanded = (
                 last_predictions.view(-1)
                 .unsqueeze(-1)
-                .expand(batch_size * state_size * self.beam_size, self.num_classes)
+                .expand(batch_size * state_size * self.beam_size, num_classes)
             )
 
             cleaned_log_probabilities = torch.where(
@@ -107,17 +102,17 @@ class ConstrainedBeamSearch(object):
                 class_log_probabilities,
             )
             cleaned_log_probabilities = cleaned_log_probabilities.view(
-                batch_size, state_size, self.beam_size, self.num_classes
+                batch_size, state_size, self.beam_size, num_classes
             )
 
             restricted_predicted_classes = torch.LongTensor(
                 batch_size, state_size, self.beam_size
-            ).to(device_id)
+            ).to(start_predictions.device)
             restricted_beam_log_probs = torch.FloatTensor(
                 batch_size, state_size, self.beam_size
-            ).to(device_id)
+            ).to(start_predictions.device)
             restricted_beam_indices = torch.LongTensor(batch_size, state_size, self.beam_size).to(
-                device_id
+                start_predictions.device
             )
 
             expanded_last_log_probabilities = last_log_probabilities.view(
@@ -125,15 +120,12 @@ class ConstrainedBeamSearch(object):
             ).expand(batch_size, state_size, self.beam_size, self.per_node_beam_size)
 
             for i in range(state_size):
-                # shape (batch_size, state_size, self.beam_size, self.num_classes)
+                # shape (batch_size, state_size, self.beam_size, num_classes)
                 state_log_probabilities = cleaned_log_probabilities
 
-                state_log_probabilities = torch.where(
-                    step_state_mask[:, :, i, :, :],
-                    state_log_probabilities,
-                    self.VERY_NEGATIVE_TENSOR,
+                state_log_probabilities = state_log_probabilities.masked_fill(
+                    1 - step_state_mask[:, :, i, :, :], -1e20
                 )
-
                 top_log_probabilities, predicted_classes = state_log_probabilities.topk(
                     self.per_node_beam_size
                 )

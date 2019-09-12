@@ -3,6 +3,7 @@ import json
 from typing import Dict, List, Optional
 
 import anytree
+from anytree.search import findall
 import numpy as np
 import torch
 from torchtext.vocab import GloVe
@@ -77,8 +78,6 @@ class ConstraintFilter(object):
             attributes = dict(node)
             children = attributes.pop("Subcategory", [])
 
-            # Remove blacklisted object classes.
-            children = [child for child in children if child["LabelName"] not in self.BLACKLIST]
             node = anytree.AnyNode(parent=parent, **attributes)
             for child in children:
                 __read_hierarchy(child, parent=node)
@@ -131,7 +130,7 @@ class ConstraintFilter(object):
         # Less height => finer-grained class name => higher score.
         heights = np.array(
             [
-                anytree.search.findall(self._hierarchy, lambda node: node.LabelName in c)[0].height
+                findall(self._hierarchy, lambda node: node.LabelName.lower() in c)[0].height
                 for c in class_names
             ]
         )

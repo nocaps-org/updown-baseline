@@ -31,16 +31,6 @@ class _CBSMatrix(object):
         return self._matrix
 
 
-def suppress_parts(scores, classes):
-    # just remove those 39 words
-    keep = [
-        i
-        for i, (cls, score) in enumerate(zip(classes, scores))
-        if score > 0.01 and cls not in BLACKLIST_CATEGORIES
-    ]
-    return keep
-
-
 class CBSConstraint(object):
     def __init__(
         self,

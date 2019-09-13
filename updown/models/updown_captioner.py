@@ -1,5 +1,5 @@
 import functools
-from typing import Dict, List, Tuple, Optional
+from typing import Any, Dict, List, Tuple, Optional
 import numpy as np
 
 import torch
@@ -7,6 +7,7 @@ from torch import nn
 from torch.nn import functional as F
 from torchtext.vocab import GloVe
 from allennlp.data import Vocabulary
+from allennlp.nn.beam_search import BeamSearch
 from allennlp.nn.util import add_sentence_boundary_token_ids, sequence_cross_entropy_with_logits
 
 from updown.modules import UpDownCell, ConstrainedBeamSearch
@@ -53,7 +54,6 @@ class UpDownCaptioner(nn.Module):
         embedding_size: int,
         hidden_size: int,
         attention_projection_size: int,
-        constraint,
         max_caption_length: int = 20,
         beam_size: int = 1,
         use_cbs: bool = True,
@@ -97,15 +97,14 @@ class UpDownCaptioner(nn.Module):
         self._output_layer.weight = self._embedding_layer.weight
 
         # We use beam search to find the most likely caption during inference.
-        self._beam_search = ConstrainedBeamSearch(
+        BeamSearchClass = ConstrainedBeamSearch if use_cbs else BeamSearch
+        self._beam_search = BeamSearchClass(
             self._boundary_index,
             max_steps=max_caption_length,
             beam_size=beam_size,
             per_node_beam_size=beam_size // 2,
         )
         self._max_caption_length = max_caption_length
-
-        self._fc = constraint
 
     @staticmethod
     def _initialize_glove(vocabulary: Vocabulary) -> torch.Tensor:
@@ -145,6 +144,8 @@ class UpDownCaptioner(nn.Module):
         image_ids: torch.Tensor,
         image_features: torch.Tensor,
         caption_tokens: Optional[torch.Tensor] = None,
+        state_transition_matrix: Any = None,
+        num_candidates: Any = None,
     ) -> Dict[str, torch.Tensor]:
         r"""
         Given bottom-up image features, maximize the likelihood of paired captions during
@@ -219,28 +220,7 @@ class UpDownCaptioner(nn.Module):
         else:
             num_decoding_steps = self._max_caption_length
 
-            start_predictions = image_features.new_full(
-                (batch_size,), fill_value=self._boundary_index
-            ).long()
-
-            state_transition_matrix_list = []
-            state_size_list = []
-            num_candidates_list = []
-            for image_id in image_ids:
-                state_transition_matrix, state_size, num_candidates = self._fc.get_state_matrix(
-                    image_id
-                )
-                state_transition_matrix_list.append(state_transition_matrix)
-                state_size_list.append(state_size)
-                num_candidates_list.append(num_candidates)
-            max_state = max(state_size_list)
-            state_transition_matrix_list = [
-                s[:, :max_state, :max_state, :] for s in state_transition_matrix_list
-            ]
-            state_transition_matrix = torch.from_numpy(
-                np.concatenate(state_transition_matrix_list, axis=0)
-            ).to(start_predictions.device)
-            num_candidates = torch.tensor(num_candidates_list).to(start_predictions.device).long()
+            start_predictions = image_features.new_full((batch_size,), self._boundary_index).long()
 
             # Add image features as a default argument to match callable signature acceptable by
             # beam search class (previous predictions and states only).
@@ -279,10 +259,11 @@ class UpDownCaptioner(nn.Module):
 
         top_two_beam_prediction = top_two_beam_prediction.cpu().detach().numpy()
         beam_prediction = beam_prediction.cpu().detach().numpy()
-        num_candidates = num_candidates.cpu().detach().numpy().tolist()
+
+        num_candidates_list = num_candidates.cpu().detach().numpy().tolist()
 
         pred = []
-        for i, label_num in enumerate(num_candidates):
+        for i, label_num in enumerate(num_candidates_list):
             if label_num >= 2:
                 # Two labels must be satisfied together
                 pred.append(top_two_beam_prediction[i])

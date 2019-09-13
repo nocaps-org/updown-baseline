@@ -11,9 +11,8 @@ from tqdm import tqdm
 from allennlp.data import Vocabulary
 
 from updown.config import Config
-from updown.data.datasets import EvaluationDataset
+from updown.data.datasets import EvaluationDataset, EvaluationDatasetWithConstraints
 from updown.models import UpDownCaptioner
-from updown.modules import FreeConstraint, CBSConstraint
 from updown.types import Prediction
 from updown.utils.evalai import NocapsEvaluator
 import updown.utils.cbs as cbs_utils
@@ -92,19 +91,28 @@ if __name__ == "__main__":
         vocabulary = cbs_utils.add_constraint_words_to_vocabulary(
             vocabulary, constraint_words_filepath=_C.DATA.CBS_OPEN_IMAGE_WORD_FORM
         )
-        constraint = CBSConstraint(
+
+    if _C.MODEL.USE_CBS:
+        eval_dataset = EvaluationDatasetWithConstraints(
             vocabulary,
-            _C.DATA.CBS_TEST_CONSTRAINTS if not _A.run_val else _C.DATA.CBS_VAL_CONSTRAINTS,
-            _C.DATA.CBS_OPEN_IMAGE_WORD_FORM,
-            _C.DATA.CBS_CLASS_HIERARCHY_PATH,
+            image_features_h5path=_C.DATA.TEST_FEATURES
+            if not _A.run_val
+            else _C.DATA.VAL_FEATURES,
+            boxes_jsonpath=_C.DATA.CBS_TEST_CONSTRAINTS
+            if not _A.run_val
+            else _C.DATA.CBS_VAL_CONSTRAINTS,
+            constraint_wordforms_csvpath=_C.DATA.CBS_OPEN_IMAGE_WORD_FORM,
+            hierarchy_jsonpath=_C.DATA.CBS_CLASS_HIERARCHY_PATH,
+            in_memory=_A.in_memory,
         )
     else:
-        constraint = FreeConstraint(vocabulary.get_vocab_size())
+        eval_dataset = EvaluationDataset(
+            image_features_h5path=_C.DATA.TEST_FEATURES
+            if not _A.run_val
+            else _C.DATA.VAL_FEATURES,
+            in_memory=_A.in_memory,
+        )
 
-    eval_dataset = EvaluationDataset(
-        image_features_h5path=_C.DATA.TEST_FEATURES if not _A.run_val else _C.DATA.VAL_FEATURES,
-        in_memory=_A.in_memory,
-    )
     eval_dataloader = DataLoader(
         eval_dataset,
         batch_size=_C.OPTIM.BATCH_SIZE // _C.MODEL.BEAM_SIZE,
@@ -121,7 +129,6 @@ if __name__ == "__main__":
         attention_projection_size=_C.MODEL.ATTENTION_PROJECTION_SIZE,
         beam_size=_C.MODEL.BEAM_SIZE,
         max_caption_length=_C.DATA.MAX_CAPTION_LENGTH,
-        constraint=constraint,
     ).to(device)
 
     # Load checkpoint to run inference.
@@ -145,7 +152,12 @@ if __name__ == "__main__":
 
         with torch.no_grad():
             # shape: (batch_size, max_caption_length)
-            batch_predictions = model(batch["image_id"], batch["image_features"])["predictions"]
+            batch_predictions = model(
+                batch["image_id"],
+                batch["image_features"],
+                state_transition_matrix=batch.get("state_transition_matrix", None),
+                num_candidates=batch.get("num_candidates", None),
+            )["predictions"]
 
         for i, image_id in enumerate(batch["image_id"]):
             instance_predictions = batch_predictions[i, :]

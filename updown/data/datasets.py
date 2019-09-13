@@ -7,6 +7,7 @@ from torch.utils.data import Dataset
 from allennlp.data import Vocabulary
 
 from updown.data.readers import CocoCaptionsReader, ImageFeaturesReader
+from updown.modules.constraint import CBSConstraint
 from updown.types import TrainingInstance, TrainingBatch, EvaluationInstance, EvaluationBatch
 
 
@@ -128,6 +129,53 @@ class EvaluationDataset(Dataset):
         )
 
         batch: EvaluationBatch = {"image_id": image_id, "image_features": image_features}
+        return batch
+
+
+class EvaluationDatasetWithConstraints(EvaluationDataset):
+    def __init__(
+        self,
+        vocabulary: Vocabulary,
+        image_features_h5path: str,
+        boxes_jsonpath: str,
+        constraint_wordforms_csvpath: str,
+        hierarchy_jsonpath: str,
+        in_memory: bool = True,
+    ):
+        super().__init__(image_features_h5path, in_memory=in_memory)
+
+        self._constraint = CBSConstraint(
+            vocabulary, boxes_jsonpath, constraint_wordforms_csvpath, hierarchy_jsonpath
+        )
+
+    def __getitem__(self, index: int) -> EvaluationInstance:
+        item: EvaluationInstance = super().__getitem__(index)
+
+        state_transition_matrix, nstates, nc = self._constraint.get_state_matrix(item["image_id"])
+
+        item_with_constraints = {
+            "state_transition_matrix": state_transition_matrix,
+            "state_size": nstates,
+            "num_candidates": nc,
+            **item,
+        }
+
+        return item_with_constraints
+
+    def collate_fn(self, batch_list: List[EvaluationInstance]) -> EvaluationBatch:
+        batch = super().collate_fn(batch_list)
+
+        max_state = max([s["state_size"] for s in batch_list])
+
+        state_transition_matrix = np.stack(
+            [s["state_transition_matrix"][0, :max_state, :max_state, :] for s in batch_list]
+        )
+        state_transition_matrix = torch.from_numpy(state_transition_matrix)
+        num_candidates = torch.tensor([s["num_candidates"] for s in batch_list]).long()
+
+        batch.update(
+            {"state_transition_matrix": state_transition_matrix, "num_candidates": num_candidates}
+        )
         return batch
 
 

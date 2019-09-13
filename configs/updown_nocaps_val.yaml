@@ -1,3 +1,5 @@
+RANDOM_SEED: 0
+
 DATA:
   VOCABULARY: data/vocabulary
   TRAIN_FEATURES: data/coco_train2017_vg_detector_features_adaptive.h5
@@ -14,8 +16,7 @@ MODEL:
   HIDDEN_SIZE: 1200
   ATTENTION_PROJECTION_SIZE: 768
   BEAM_SIZE: 5
-
-RANDOM_SEED: 0
+  USE_CBS: True
 
 OPTIM:
   BATCH_SIZE: 150

@@ -12,9 +12,12 @@ from tqdm import tqdm
 from allennlp.data import Vocabulary
 
 from updown.config import Config
-from updown.data.datasets import TrainingDataset, EvaluationDataset
+from updown.data.datasets import (
+    TrainingDataset,
+    EvaluationDataset,
+    EvaluationDatasetWithConstraints,
+)
 from updown.models import UpDownCaptioner
-from updown.modules import FreeConstraint, CBSConstraint
 from updown.types import Prediction
 from updown.utils.checkpointing import CheckpointManager
 from updown.utils.common import cycle
@@ -114,14 +117,6 @@ if __name__ == "__main__":
         vocabulary = cbs_utils.add_constraint_words_to_vocabulary(
             vocabulary, constraint_words_filepath=_C.DATA.CBS_OPEN_IMAGE_WORD_FORM
         )
-        constraint = CBSConstraint(
-            vocabulary,
-            _C.DATA.CBS_VAL_CONSTRAINTS,
-            _C.DATA.CBS_OPEN_IMAGE_WORD_FORM,
-            _C.DATA.CBS_CLASS_HIERARCHY_PATH,
-        )
-    else:
-        constraint = FreeConstraint(vocabulary.get_vocab_size())
 
     train_dataset = TrainingDataset(
         vocabulary,
@@ -140,9 +135,20 @@ if __name__ == "__main__":
     # Make dataloader cyclic for sampling batches perpetually.
     train_dataloader = cycle(train_dataloader, device)
 
-    val_dataset = EvaluationDataset(
-        image_features_h5path=_C.DATA.VAL_FEATURES, in_memory=_A.in_memory
-    )
+    if _C.MODEL.USE_CBS:
+        val_dataset = EvaluationDatasetWithConstraints(
+            vocabulary,
+            image_features_h5path=_C.DATA.VAL_FEATURES,
+            boxes_jsonpath=_C.DATA.CBS_VAL_CONSTRAINTS,
+            constraint_wordforms_csvpath=_C.DATA.CBS_OPEN_IMAGE_WORD_FORM,
+            hierarchy_jsonpath=_C.DATA.CBS_CLASS_HIERARCHY_PATH,
+            in_memory=_A.in_memory,
+        )
+    else:
+        val_dataset = EvaluationDataset(
+            image_features_h5path=_C.DATA.VAL_FEATURES, in_memory=_A.in_memory
+        )
+
     # Use a smaller batch during validation (accounting beam size) to fit in memory.
     val_dataloader = DataLoader(
         val_dataset,
@@ -160,7 +166,6 @@ if __name__ == "__main__":
         attention_projection_size=_C.MODEL.ATTENTION_PROJECTION_SIZE,
         beam_size=_C.MODEL.BEAM_SIZE,
         max_caption_length=_C.DATA.MAX_CAPTION_LENGTH,
-        constraint=constraint,
     ).to(device)
 
     if len(_A.gpu_ids) > 1 and -1 not in _A.gpu_ids:
@@ -241,9 +246,12 @@ if __name__ == "__main__":
 
                     with torch.no_grad():
                         # shape: (batch_size, max_caption_length)
-                        batch_predictions = model(batch["image_id"], batch["image_features"])[
-                            "predictions"
-                        ]
+                        batch_predictions = model(
+                            batch["image_id"],
+                            batch["image_features"],
+                            state_transition_matrix=batch.get("state_transition_matrix", None),
+                            num_candidates=batch.get("num_candidates", None),
+                        )["predictions"]
 
                     for i, image_id in enumerate(batch["image_id"]):
                         instance_predictions = batch_predictions[i, :]

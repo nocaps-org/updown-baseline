@@ -159,13 +159,3 @@ class CBSConstraint(object):
                         start_additional_index += 2
 
         return self.M.matrix, start_additional_index, len(candidates)
-
-
-class FreeConstraint(object):
-    def __init__(self, output_size):
-        self.M = _CBSMatrix(output_size)
-
-    def get_state_matrix(self, image_id):
-        self.M.init_matrix(1)
-        self.M.init_row(0)
-        return self.M.matrix, 1, 0

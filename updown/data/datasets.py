@@ -1,14 +1,14 @@
-from typing import List
+from typing import Dict, List
 
 import numpy as np
-
 import torch
 from torch.utils.data import Dataset
 from allennlp.data import Vocabulary
 
-from updown.data.readers import CocoCaptionsReader, ImageFeaturesReader
+from updown.data.readers import CocoCaptionsReader, ConstraintBoxesReader, ImageFeaturesReader
 from updown.modules.constraint import CBSConstraint
 from updown.types import TrainingInstance, TrainingBatch, EvaluationInstance, EvaluationBatch
+from updown.utils.cbs import ConstraintFilter, FiniteStateMachineBuilder
 
 
 class TrainingDataset(Dataset):
@@ -138,39 +138,50 @@ class EvaluationDatasetWithConstraints(EvaluationDataset):
         vocabulary: Vocabulary,
         image_features_h5path: str,
         boxes_jsonpath: str,
-        constraint_wordforms_csvpath: str,
+        wordforms_tsvpath: str,
         hierarchy_jsonpath: str,
+        nms_threshold: float = 0.85,
+        topk_constraints: int = 3,
         in_memory: bool = True,
     ):
         super().__init__(image_features_h5path, in_memory=in_memory)
 
-        self._constraint = CBSConstraint(
-            vocabulary, boxes_jsonpath, constraint_wordforms_csvpath, hierarchy_jsonpath
+        self._vocabulary = vocabulary
+        self._pad_index = vocabulary.get_token_index("@@UNKNOWN@@")
+
+        self._boxes_reader = ConstraintBoxesReader(boxes_jsonpath)
+
+        self._constraint_filter = ConstraintFilter(
+            hierarchy_jsonpath, nms_threshold, topk_constraints
         )
+        self._fsm_builder = FiniteStateMachineBuilder(vocabulary, wordforms_tsvpath)
 
     def __getitem__(self, index: int) -> EvaluationInstance:
         item: EvaluationInstance = super().__getitem__(index)
 
-        state_transition_matrix, nstates, nc = self._constraint.get_state_matrix(item["image_id"])
+        # Apply constraint filtering to object class names.
+        constraint_boxes = self._boxes_reader[item["image_id"]]
 
-        item_with_constraints = {
+        candidates: List[str] = self._constraint_filter(
+            constraint_boxes["boxes"], constraint_boxes["class_names"], constraint_boxes["scores"]
+        )
+        state_transition_matrix, nstates = self._fsm_builder.build(candidates)
+
+        return {
             "state_transition_matrix": state_transition_matrix,
             "state_size": nstates,
-            "num_candidates": nc,
+            "num_candidates": len(candidates),
             **item,
         }
-
-        return item_with_constraints
 
     def collate_fn(self, batch_list: List[EvaluationInstance]) -> EvaluationBatch:
         batch = super().collate_fn(batch_list)
 
         max_state = max([s["state_size"] for s in batch_list])
 
-        state_transition_matrix = np.stack(
-            [s["state_transition_matrix"][0, :max_state, :max_state, :] for s in batch_list]
+        state_transition_matrix = torch.stack(
+            [s["state_transition_matrix"][:max_state, :max_state, :] for s in batch_list]
         )
-        state_transition_matrix = torch.from_numpy(state_transition_matrix)
         num_candidates = torch.tensor([s["num_candidates"] for s in batch_list]).long()
 
         batch.update(

@@ -11,7 +11,7 @@ from allennlp.data import Vocabulary
 
 
 def add_constraint_words_to_vocabulary(
-    vocabulary: Vocabulary, constraint_words_filepath: str, namespace: str = "tokens"
+    vocabulary: Vocabulary, wordforms_tsvpath: str, namespace: str = "tokens"
 ) -> Vocabulary:
     r"""
     Expand the :class:`~allennlp.data.vocabulary.Vocabulary` with CBS constraint words. We do not
@@ -22,7 +22,7 @@ def add_constraint_words_to_vocabulary(
     ----------
     vocabulary: allennlp.data.vocabulary.Vocabulary
         The vocabulary to be expanded with provided words.
-    constraint_words_filepath: str
+    wordforms_tsvpath: str
         Path to a TSV file containing two fields: first is the name of Open Images object class
         and second field is a comma separated list of words (possibly singular and plural forms
         of the word etc.) which could be CBS constraints.
@@ -35,10 +35,8 @@ def add_constraint_words_to_vocabulary(
         The expanded :class:`~allennlp.data.vocabulary.Vocabulary` with all the words added.
     """
 
-    with open(constraint_words_filepath, "r") as constraint_words_file:
-        reader = csv.DictReader(
-            constraint_words_file, delimiter="\t", fieldnames=["class", "words"]
-        )
+    with open(wordforms_tsvpath, "r") as wordforms_file:
+        reader = csv.DictReader(wordforms_file, delimiter="\t", fieldnames=["class_name", "words"])
         for row in reader:
             for word in row["words"].split(","):
                 # Constraint words can be "multi-word" (may have more than one tokens).
@@ -126,6 +124,9 @@ class ConstraintFilter(object):
         of class in the hierarchy.
         """
 
+        if len(class_names) == 0:
+            return []
+
         # For object class, get the height of its corresponding node in the hierarchy tree.
         # Less height => finer-grained class name => higher score.
         heights = np.array(
@@ -175,3 +176,92 @@ class ConstraintFilter(object):
             score_order = score_order[np.where(keep_condition)[0]]
 
         return keep_box_indices
+
+
+class FiniteStateMachineBuilder(object):
+    def __init__(self, vocabulary: Vocabulary, wordforms_tsvpath: str, max_num_states: int = 26):
+        self._vocabulary = vocabulary
+        self._max_num_states = max_num_states
+
+        self._wordforms: Dict[str, List[str]] = {}
+        with open(wordforms_tsvpath, "r") as wordforms_file:
+            reader = csv.DictReader(
+                wordforms_file, delimiter="\t", fieldnames=["class_name", "words"]
+            )
+            for row in reader:
+                self._wordforms[row["class_name"]] = row["words"].split(",")
+
+    @staticmethod
+    def _connect(fsm: torch.Tensor, from_state: int, to_state: int, word_indices: List[int]):
+        for word_index in word_indices:
+            fsm[from_state, to_state, word_index] = 1
+            fsm[from_state, from_state, word_index] = 0
+        return fsm
+
+    def build(self, candidates: List[str]):
+        fsm = (
+            torch.eye(self._max_num_states, dtype=torch.uint8)
+            .unsqueeze(-1)
+            .repeat(1, 1, self._vocabulary.get_vocab_size())
+        )
+        last_state = 8
+        level_mapping = [{3: 5, 2: 6}, {1: 6, 3: 4}, {1: 5, 2: 4}]
+        for i, candidate in enumerate(candidates):
+            class_words = candidate.split()
+
+            if len(class_words) == 1:
+                group_s1 = [
+                    self._vocabulary.get_token_index(wf) for wf in self._wordforms[class_words[0]]
+                ]
+
+                fsm = self._connect(fsm, 0, i + 1, group_s1)
+                fsm = self._connect(fsm, i + 4, 7, group_s1)
+
+                mapping = level_mapping[i]
+                for j in range(1, 4):
+                    if j in mapping:
+                        fsm = self._connect(fsm, j, mapping[j], group_s1)
+            elif len(class_words) == 2:
+                [word1, word2] = class_words
+                group_s1 = [self._vocabulary.get_token_index(wf) for wf in self._wordforms[word1]]
+                group_s2 = [self._vocabulary.get_token_index(wf) for wf in self._wordforms[word2]]
+
+                fsm = self._connect(fsm, 0, last_state, group_s1)
+                fsm = self._connect(fsm, last_state, i + 1, group_s2)
+                last_state += 1
+
+                fsm = self._connect(fsm, i + 4, last_state, group_s1)
+                fsm = self._connect(fsm, last_state, 7, group_s2)
+                last_state += 1
+
+                mapping = level_mapping[i]
+                for j in range(1, 4):
+                    if j in mapping:
+                        fsm = self._connect(fsm, j, last_state, group_s1)
+                        fsm = self._connect(fsm, last_state, mapping[j], group_s2)
+                        last_state += 1
+            elif len(class_words) == 3:
+                [word1, word2, word3] = class_words
+                group_s1 = [self._vocabulary.get_token_index(wf) for wf in self._wordforms[word1]]
+                group_s2 = [self._vocabulary.get_token_index(wf) for wf in self._wordforms[word2]]
+                group_s3 = [self._vocabulary.get_token_index(wf) for wf in self._wordforms[word3]]
+
+                fsm = self._connect(fsm, 0, last_state, group_s1)
+                fsm = self._connect(fsm, last_state, last_state + 1, group_s2)
+                fsm = self._connect(fsm, last_state + 1, i + 1, group_s3)
+                last_state += 2
+
+                fsm = self._connect(fsm, i + 4, last_state, group_s1)
+                fsm = self._connect(fsm, last_state, last_state + 1, group_s2)
+                fsm = self._connect(fsm, last_state + 1, 7, group_s3)
+                last_state += 2
+
+                mapping = level_mapping[i]
+                for j in range(1, 4):
+                    if j in mapping:
+                        fsm = self._connect(fsm, j, last_state, group_s1)
+                        fsm = self._connect(fsm, last_state, last_state + 1, group_s2)
+                        fsm = self._connect(fsm, last_state + 1, mapping[j], group_s3)
+                        last_state += 2
+
+        return fsm, last_state

@@ -2,13 +2,11 @@ from typing import Callable, Dict, Optional, Tuple
 
 import torch
 
-
-VERY_NEGATIVE_NUMBER = -1e20
 StateType = Dict[str, torch.Tensor]
 StepFunctionType = Callable[[torch.Tensor, StateType], Tuple[torch.Tensor, StateType]]
 
 
-def enlarge_single_tensor(t, batch_size, state_size, beam_size):
+def _enlarge_single_tensor(t, batch_size, state_size, beam_size):
     # shape: (batch_size * beam_size, *)
     _, *last_dims = t.size()
     return (
@@ -30,9 +28,7 @@ class ConstrainedBeamSearch(object):
         self.max_steps = max_steps
         self.beam_size = beam_size
         self.per_node_beam_size = per_node_beam_size or self.beam_size
-
         self.init_state = 0
-        self.VERY_NEGATIVE_TENSOR = torch.FloatTensor([VERY_NEGATIVE_NUMBER])
 
     def search(
         self,
@@ -74,7 +70,7 @@ class ConstrainedBeamSearch(object):
         log_probs_after_end[:, self._end_index] = 0.0
 
         state = {
-            key: enlarge_single_tensor(value, batch_size, state_size, self.beam_size)
+            key: _enlarge_single_tensor(value, batch_size, state_size, self.beam_size)
             for (key, value) in state.items()
         }
 

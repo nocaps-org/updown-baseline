@@ -15,6 +15,8 @@ from nltk.tokenize import word_tokenize
 import numpy as np
 from tqdm import tqdm
 
+from updown.types import ConstraintBoxes
+
 
 class ImageFeaturesReader(object):
     r"""
@@ -65,9 +67,7 @@ class ImageFeaturesReader(object):
 
             # If not loading all features in memory at once, just keep a mapping of image id to
             # index of features in H5 file.
-            self._map = {
-                image_id_np[index]: index for index in range(image_id_np.shape[0])
-            }
+            self._map = {image_id_np[index]: index for index in range(image_id_np.shape[0])}
 
     def __len__(self) -> int:
         return len(self._map)
@@ -91,6 +91,7 @@ class CocoCaptionsReader(object):
     captions_jsonpath : str
         Path to a JSON file containing training captions in COCO format (COCO train2017 usually).
     """
+
     def __init__(self, captions_jsonpath: str) -> None:
         self._captions_jsonpath = captions_jsonpath
 
@@ -116,8 +117,46 @@ class CocoCaptionsReader(object):
 
             self._captions.append((caption_item["image_id"], caption_tokens))
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self._captions)
 
     def __getitem__(self, index) -> Tuple[int, List[str]]:
         return self._captions[index]
+
+
+class ConstraintBoxesReader(object):
+    def __init__(self, boxes_jsonpath: str):
+
+        _boxes = json.load(open(boxes_jsonpath))
+
+        # Form a mapping between Image ID and corresponding boxes from OI Detector.
+        self._image_id_to_boxes: Dict[int, Any] = {}
+
+        for ann in _boxes["annotations"]:
+            if ann["image_id"] not in self._image_id_to_boxes:
+                self._image_id_to_boxes[ann["image_id"]] = []
+
+            self._image_id_to_boxes[ann["image_id"]].append(ann)
+
+        # A list of Open Image object classes. Index of a class in this list is its Open Images
+        # class ID. Open Images class IDs start from 1, so zero-th element is "__background__".
+        self._class_names = [c["name"] for c in _boxes["categories"]]
+
+    def __len__(self) -> int:
+        return len(self._image_id_to_boxes)
+
+    def __getitem__(self, image_id: int) -> ConstraintBoxes:
+
+        # List of bounding box detections from OI detector in COCO format.
+        # Some images may not have any boxes, handle that case too.
+        bbox_anns = self._image_id_to_boxes.get(int(image_id), [])
+
+        boxes = np.array([ann["bbox"] for ann in bbox_anns])
+        scores = np.array([ann.get("score", 1) for ann in bbox_anns])
+
+        # Convert object class IDs to their names.
+        class_names = [self._class_names[ann["category_id"]] for ann in bbox_anns]
+
+        return {
+            "boxes": boxes, "class_names": class_names, "scores": scores
+        }

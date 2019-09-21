@@ -31,6 +31,9 @@ EvaluationBatch = TypedDict(
     "EvaluationBatch", {"image_id": torch.LongTensor, "image_features": torch.FloatTensor}
 )
 
-Prediction = TypedDict(
-    "Prediction", {"image_id": int, "caption": str},
+ConstraintBoxes = TypedDict(
+    "ConstraintBoxes",
+    {"boxes": np.ndarray, "class_names": List[str], "score": np.ndarray},
 )
+
+Prediction = TypedDict("Prediction", {"image_id": int, "caption": str})

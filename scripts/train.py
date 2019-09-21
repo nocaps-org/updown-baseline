@@ -115,7 +115,7 @@ if __name__ == "__main__":
     # constraint words derived from Open Images classes.
     if _C.MODEL.USE_CBS:
         vocabulary = cbs_utils.add_constraint_words_to_vocabulary(
-            vocabulary, constraint_words_filepath=_C.DATA.CBS_OPEN_IMAGE_WORD_FORM
+            vocabulary, wordforms_tsvpath=_C.DATA.CBS_WORDFORMS
         )
 
     train_dataset = TrainingDataset(
@@ -140,7 +140,7 @@ if __name__ == "__main__":
             vocabulary,
             image_features_h5path=_C.DATA.VAL_FEATURES,
             boxes_jsonpath=_C.DATA.CBS_VAL_CONSTRAINTS,
-            constraint_wordforms_csvpath=_C.DATA.CBS_OPEN_IMAGE_WORD_FORM,
+            wordforms_tsvpath=_C.DATA.CBS_WORDFORMS,
             hierarchy_jsonpath=_C.DATA.CBS_CLASS_HIERARCHY_PATH,
             in_memory=_A.in_memory,
         )

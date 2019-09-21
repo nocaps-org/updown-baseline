@@ -11,6 +11,7 @@ from allennlp.nn.beam_search import BeamSearch
 from allennlp.nn.util import add_sentence_boundary_token_ids, sequence_cross_entropy_with_logits
 
 from updown.modules import UpDownCell, ConstrainedBeamSearch
+from updown.utils.cbs import cbs_select_best_beam
 
 
 class UpDownCaptioner(nn.Module):
@@ -97,6 +98,7 @@ class UpDownCaptioner(nn.Module):
         self._output_layer.weight = self._embedding_layer.weight
 
         # We use beam search to find the most likely caption during inference.
+        self._use_cbs = use_cbs
         BeamSearchClass = ConstrainedBeamSearch if use_cbs else BeamSearch
         self._beam_search = BeamSearchClass(
             self._boundary_index,
@@ -231,50 +233,16 @@ class UpDownCaptioner(nn.Module):
             all_top_k_predictions, log_probabilities = self._beam_search.search(
                 start_predictions, states, beam_decode_step, state_transition_matrix
             )
-
-            best_predictions = self._select_state_func(
-                all_top_k_predictions, log_probabilities, num_candidates
-            )
-
-            # Pick the first beam as predictions (normal beam search)
-            # best_predictions = all_top_k_predictions[:, 0, :]
+            if self._use_cbs:
+                best_predictions, _ = cbs_select_best_beam(
+                    all_top_k_predictions, log_probabilities, num_candidates
+                )
+            else:
+                # Pick the first beam as predictions (normal beam search)
+                best_predictions = all_top_k_predictions[:, 0, :]
             output_dict = {"predictions": best_predictions}
 
         return output_dict
-
-    def _select_state_func(self, beam_prediction, beam_score, num_candidates: torch.Tensor):
-        # TODO (kd): fix this.
-        max_step = beam_prediction.size(-1)
-        selected_indices = torch.argmax(beam_score[:, 4:8, 0], dim=1)
-        selected_indices += (
-            torch.arange(
-                selected_indices.size(0),
-                device=selected_indices.device,
-                dtype=selected_indices.dtype,
-            )
-            * 4
-        )
-        top_two_beam_prediction = beam_prediction[:, 4:8, 0, :].contiguous().view(-1, max_step)
-        top_two_beam_prediction = top_two_beam_prediction.index_select(0, selected_indices)
-
-        top_two_beam_prediction = top_two_beam_prediction.cpu().detach().numpy()
-        beam_prediction = beam_prediction.cpu().detach().numpy()
-
-        num_candidates_list = num_candidates.cpu().detach().numpy().tolist()
-
-        pred = []
-        for i, label_num in enumerate(num_candidates_list):
-            if label_num >= 2:
-                # Two labels must be satisfied together
-                pred.append(top_two_beam_prediction[i])
-            elif label_num >= 1:
-                # One label must be satisfied together
-                pred.append(beam_prediction[i, 1, 0, :])
-            else:
-                # No constraint, get original beam
-                pred.append(beam_prediction[i, 0, 0, :])
-
-        return torch.from_numpy(np.array(pred, dtype=np.int64)).to(beam_score.device)
 
     def _decode_step(
         self,

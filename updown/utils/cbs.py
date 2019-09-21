@@ -265,3 +265,103 @@ class FiniteStateMachineBuilder(object):
                         last_state += 2
 
         return fsm, last_state
+
+
+def cbs_select_best_beam(
+    beams: torch.Tensor,
+    beam_log_probabilities: torch.Tensor,
+    given_constraints: torch.Tensor,
+    min_constraints_to_satisfy: int = 2,
+):
+    r"""
+    Select the best beam decoded with the highest likelihood, and which also satisfies specified
+    minimum constraints out of a total number of given constraints.
+
+    .. note::
+
+        The implementation of this function goes hand-in-hand with the FSM building implementation
+        in :meth:`~updown.utils.cbs.FiniteStateMachineBuilder.build`, which specifies which state
+        satisfies which (basically, how many) constraints. If the "definition" of states change,
+        then selection of beams also changes accordingly.
+
+    Parameters
+    ----------
+    beams: torch.Tensor
+        A tensor of shape ``(batch_size, num_states, beam_size, max_decoding_steps)`` containing
+        decoded beams by :class:`~updown.modules.cbs.ConstrainedBeamSearch`. These beams are
+        sorted according to their likelihood (descending) in ``beam_size`` dimension.
+        already best beams in their state.
+    beam_log_probabilities: torch.Tensor
+        A tensor of shape ``(batch_size, num_states, beam_size)`` containing likelihood of decoded
+        beams.
+    given_constraints: torch.Tensor
+        A tensor of shape ``(batch_size, )`` containing number of constraints given at the start
+        of decoding.
+    min_constraints_to_satisfy: int, optional (default = 2)
+        Minimum number of constraints to satisfy. This is either 2, or ``given_constraints`` if
+        they are less than 2. Beams corresponding to states not satisfying at least these number
+        of constraints will be dropped. Only up to 3 supported.
+
+    Returns
+    -------
+    Tuple[torch.Tensor, torch.Tensor]
+        A tuple with two elements: decoded sequence (be am) which has highest likelihood among
+        beams satisfying constraints, and the likelihood value of chosen beam.
+    """
+    if min_constraints_to_satisfy > 3:
+        raise ValueError(
+            f"Cannot satisfy {min_constraints_to_satisfy} constraints. Only up to 3 supported."
+        )
+
+    batch_size, num_states, max_decoding_steps = beams.size()
+    beams = beams.cpu().detach().numpy()
+
+    best_beams: List[torch.Tensor] = []
+    best_beam_log_probabilities: List[torch.Tensor] = []
+
+    for i in range(len(batch_size)):
+        given_constraints_for_this = given_constraints[i].item()
+
+        min_constraints_to_satisfy_for_this = min(
+            min_constraints_to_satisfy, given_constraints_for_this
+        )
+
+        # For given constraints (a,b,c) and states S[0:8] -
+        if min_constraints_to_satisfy_for_this == 0:
+            # Just select state 0 (no constraints)
+            best_beams.append(beams[i, 0, 0, :])
+            best_beam_log_probabilities.append(beam_log_probabilities[i, 0, 0])
+
+        elif min_constraints_to_satisfy_for_this == 1:
+            # One constraint given, select state 1 (a).
+            best_beams.append(beams[i, 1, 0, :])
+            best_beam_log_probabilities.append(beam_log_probabilities[i, 1, 0])
+
+        elif min_constraints_to_satisfy_for_this >= 2:
+            # According to the FSM builder logic, states satisfying two or more constraints are
+            # S4 (b,c), S5 (a,c), S6 (a,b), S7 (a,b,c). "c" might be a dummy constraint.
+
+            selected_indices = torch.argmax(beam_log_probabilities[:, 4:8, 0], dim=1)
+            selected_indices += (
+                torch.arange(
+                    selected_indices.size(0),
+                    device=selected_indices.device,
+                    dtype=selected_indices.dtype,
+                )
+                * 4
+            )
+            top_beams = beams[:, 4:8, 0, :].contiguous().view(-1, max_decoding_steps)
+            top_beams = top_beams.index_select(0, selected_indices)
+
+            top_beam_logprobs = beam_log_probabilities[:, 4:8, 0].contiguous().view(-1)
+            top_beam_logprobs = top_beam_logprobs.index_select(0, selected_indices)
+
+            top_beams = top_beams.cpu().detach().numpy()
+            best_beams.append(top_beams[i])
+            best_beam_log_probabilities.append(top_beam_logprobs[i])
+
+    # shape: (batch_size, max_decoding_steps), (batch_size, )
+    return (
+        torch.tensor(best_beams).long().to(beam_log_probabilities.device),
+        torch.tensor(best_beam_log_probabilities).to(beam_log_probabilities.device),
+    )

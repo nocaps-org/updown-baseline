@@ -130,6 +130,7 @@ if __name__ == "__main__":
         beam_size=_C.MODEL.BEAM_SIZE,
         max_caption_length=_C.DATA.MAX_CAPTION_LENGTH,
         use_cbs=_C.MODEL.USE_CBS,
+        min_constraints_to_satisfy=_C.MODEL.MIN_CONSTRAINTS_TO_SATISFY,
     ).to(device)
 
     # Load checkpoint to run inference.
@@ -153,11 +154,11 @@ if __name__ == "__main__":
 
         with torch.no_grad():
             # shape: (batch_size, max_caption_length)
+            # Pass finite state machine and number of constraints if using CBS.
             batch_predictions = model(
-                batch["image_id"],
                 batch["image_features"],
-                state_transition_matrix=batch.get("state_transition_matrix", None),
-                num_candidates=batch.get("num_candidates", None),
+                fsm=batch.get("fsm", None),
+                num_constraints=batch.get("num_constraints", None),
             )["predictions"]
 
         for i, image_id in enumerate(batch["image_id"]):

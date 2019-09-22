@@ -125,6 +125,23 @@ class CocoCaptionsReader(object):
 
 
 class ConstraintBoxesReader(object):
+    r"""
+    A reader for annotation files containing detected bounding boxes (in COCO format). The JSON
+    file should have ``categories``, ``images`` and ``annotations`` fields (similar to COCO
+    instance annotations).
+
+    Extended Summary
+    ----------------
+    For our use cases, the detections are from an object detector trained using Open Images.
+    These can be produced for any set of images by following instructions
+    `here <https://github.com/nocaps-org/image-feature-extractors#extract-boxes-from-oi-detector>`_.
+
+    Parameters
+    ----------
+    boxes_jsonpath: str
+        Path to a JSON file containing bounding box detections in COCO format (nocaps val/test
+        usually).
+    """
     def __init__(self, boxes_jsonpath: str):
 
         _boxes = json.load(open(boxes_jsonpath))

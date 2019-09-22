@@ -7,7 +7,14 @@ from allennlp.data import Vocabulary
 
 from updown.data.readers import CocoCaptionsReader, ConstraintBoxesReader, ImageFeaturesReader
 from updown.modules.constraint import CBSConstraint
-from updown.types import TrainingInstance, TrainingBatch, EvaluationInstance, EvaluationBatch
+from updown.types import (
+    TrainingInstance,
+    TrainingBatch,
+    EvaluationInstance,
+    EvaluationInstanceWithConstraints,
+    EvaluationBatch,
+    EvaluationBatchWithConstraints,
+)
 from updown.utils.cbs import ConstraintFilter, FiniteStateMachineBuilder
 
 
@@ -57,11 +64,6 @@ class TrainingDataset(Dataset):
         return len(self._captions_reader)
 
     def __getitem__(self, index: int) -> TrainingInstance:
-        r"""
-        Returns
-        -------
-        TrainingInstance
-        """
         image_id, caption = self._captions_reader[index]
         image_features = self._image_features_reader[image_id]
 
@@ -104,6 +106,24 @@ class TrainingDataset(Dataset):
 
 
 class EvaluationDataset(Dataset):
+    r"""
+    A PyTorch :class:`~torch.utils.data.Dataset` providing image features for inference. When
+    wrapped with a :class:`~torch.utils.data.DataLoader`, it provides batches of image features.
+
+    Notes
+    -----
+    Use :mod:`collate_fn` when wrapping with a :class:`~torch.utils.data.DataLoader`.
+
+    Parameters
+    ----------
+    vocabulary: allennlp.data.Vocabulary
+        AllenNLP’s vocabulary containing token to index mapping for captions vocabulary.
+    image_features_h5path: str
+        Path to an H5 file containing pre-extracted features from nocaps val/test images.
+    in_memory: bool, optional (default = True)
+        Whether to load all image features in memory.
+    """
+
     def __init__(self, image_features_h5path: str, in_memory: bool = True) -> None:
 
         self._image_features_reader = ImageFeaturesReader(image_features_h5path, in_memory)
@@ -133,6 +153,49 @@ class EvaluationDataset(Dataset):
 
 
 class EvaluationDatasetWithConstraints(EvaluationDataset):
+    r"""
+    A PyTorch :class:`~torch.utils.data.Dataset` providing image features for inference, along
+    with constraints for :class:`~updown.modules.cbs.ConstrainedBeamSearch`. When wrapped with a
+    :class:`~torch.utils.data.DataLoader`, it provides batches of image features, Finite State
+    Machines built (per instance) from constraints, and number of constraints used to make these.
+
+    Extended Summary
+    ----------------
+    Finite State Machines as represented as adjacency matrices (Tensors) with state transitions
+    corresponding to specific constraint (word) occurrence while decoding). We return the number
+    of constraints used to make an FSM because it is required while selecting which decoded beams
+    satisfied constraints. Refer :func:`~updown.utils.cbs.cbs_select_best_beam` for more details.
+
+    Notes
+    -----
+    Use :mod:`collate_fn` when wrapping with a :class:`~torch.utils.data.DataLoader`.
+
+    Parameters
+    ----------
+    vocabulary: allennlp.data.Vocabulary
+        AllenNLP’s vocabulary containing token to index mapping for captions vocabulary.
+    image_features_h5path: str
+        Path to an H5 file containing pre-extracted features from nocaps val/test images.
+    boxes_jsonpath: str
+        Path to a JSON file containing bounding box detections in COCO format (nocaps val/test
+        usually).
+    wordforms_tsvpath: str
+        Path to a TSV file containing two fields: first is the name of Open Images object class
+        and second field is a comma separated list of words (possibly singular and plural forms
+        of the word etc.) which could be CBS constraints.
+    hierarchy_jsonpath: str
+        Path to a JSON file containing a hierarchy of Open Images object classes as
+        `here <https://storage.googleapis.com/openimages/2018_04/bbox_labels_600_hierarchy_visualizer/circle.html>`_.
+    nms_threshold: float, optional (default = 0.85)
+        NMS threshold for suppressing generic object class names during constraint filtering,
+        for two boxes with IoU higher than this threshold, "dog" suppresses "animal".
+    max_given_constraints: int, optional (default = 3)
+        Maximum number of constraints which can be specified for CBS decoding. Constraints are
+        selected based on the prediction confidence score of their corresponding bounding boxes.
+    in_memory: bool, optional (default = True)
+        Whether to load all image features in memory.
+    """
+
     def __init__(
         self,
         vocabulary: Vocabulary,
@@ -141,7 +204,7 @@ class EvaluationDatasetWithConstraints(EvaluationDataset):
         wordforms_tsvpath: str,
         hierarchy_jsonpath: str,
         nms_threshold: float = 0.85,
-        topk_constraints: int = 3,
+        max_given_constraints: int = 3,
         in_memory: bool = True,
     ):
         super().__init__(image_features_h5path, in_memory=in_memory)
@@ -152,11 +215,11 @@ class EvaluationDatasetWithConstraints(EvaluationDataset):
         self._boxes_reader = ConstraintBoxesReader(boxes_jsonpath)
 
         self._constraint_filter = ConstraintFilter(
-            hierarchy_jsonpath, nms_threshold, topk_constraints
+            hierarchy_jsonpath, nms_threshold, max_given_constraints
         )
         self._fsm_builder = FiniteStateMachineBuilder(vocabulary, wordforms_tsvpath)
 
-    def __getitem__(self, index: int) -> EvaluationInstance:
+    def __getitem__(self, index: int) -> EvaluationInstanceWithConstraints:
         item: EvaluationInstance = super().__getitem__(index)
 
         # Apply constraint filtering to object class names.
@@ -165,28 +228,18 @@ class EvaluationDatasetWithConstraints(EvaluationDataset):
         candidates: List[str] = self._constraint_filter(
             constraint_boxes["boxes"], constraint_boxes["class_names"], constraint_boxes["scores"]
         )
-        state_transition_matrix, nstates = self._fsm_builder.build(candidates)
+        fsm, nstates = self._fsm_builder.build(candidates)
 
-        return {
-            "state_transition_matrix": state_transition_matrix,
-            "state_size": nstates,
-            "num_candidates": len(candidates),
-            **item,
-        }
+        return {"fsm": fsm, "num_states": nstates, "num_constraints": len(candidates), **item}
 
-    def collate_fn(self, batch_list: List[EvaluationInstance]) -> EvaluationBatch:
+    def collate_fn(self, batch_list: List[EvaluationInstance]) -> EvaluationBatchWithConstraints:
         batch = super().collate_fn(batch_list)
 
-        max_state = max([s["state_size"] for s in batch_list])
+        max_state = max([s["num_states"] for s in batch_list])
+        fsm = torch.stack([s["fsm"][:max_state, :max_state, :] for s in batch_list])
+        num_candidates = torch.tensor([s["num_constraints"] for s in batch_list]).long()
 
-        state_transition_matrix = torch.stack(
-            [s["state_transition_matrix"][:max_state, :max_state, :] for s in batch_list]
-        )
-        num_candidates = torch.tensor([s["num_candidates"] for s in batch_list]).long()
-
-        batch.update(
-            {"state_transition_matrix": state_transition_matrix, "num_candidates": num_candidates}
-        )
+        batch.update({"fsm": fsm, "num_constraints": num_candidates})
         return batch
 
 

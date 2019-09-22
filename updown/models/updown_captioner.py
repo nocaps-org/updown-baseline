@@ -1,5 +1,5 @@
 import functools
-from typing import Any, Dict, List, Tuple, Optional
+from typing import Dict, List, Tuple, Optional
 import numpy as np
 
 import torch
@@ -46,6 +46,11 @@ class UpDownCaptioner(nn.Module):
         be truncated to maximum length.
     beam_size: int, optional (default = 1)
         Beam size for finding the most likely caption during decoding time (evaluation).
+    use_cbs: bool, optional (default = False)
+        Whether to use :class:`~updown.modules.cbs.ConstrainedBeamSearch` for decoding.
+    min_constraints_to_satisfy: int, optional (default = 2)
+        Minimum number of constraints to satisfy for CBS, used for selecting the best beam. This
+        will be ignored when ``use_cbs`` is False.
     """
 
     def __init__(
@@ -57,7 +62,8 @@ class UpDownCaptioner(nn.Module):
         attention_projection_size: int,
         max_caption_length: int = 20,
         beam_size: int = 1,
-        use_cbs: bool = True,
+        use_cbs: bool = False,
+        min_constraints_to_satisfy: int = 2,
     ) -> None:
         super().__init__()
         self._vocabulary = vocabulary
@@ -98,7 +104,6 @@ class UpDownCaptioner(nn.Module):
         self._output_layer.weight = self._embedding_layer.weight
 
         # We use beam search to find the most likely caption during inference.
-        self._use_cbs = use_cbs
         BeamSearchClass = ConstrainedBeamSearch if use_cbs else BeamSearch
         self._beam_search = BeamSearchClass(
             self._boundary_index,
@@ -107,6 +112,9 @@ class UpDownCaptioner(nn.Module):
             per_node_beam_size=beam_size // 2,
         )
         self._max_caption_length = max_caption_length
+
+        self._use_cbs = use_cbs
+        self._min_constraints_to_satisfy = min_constraints_to_satisfy
 
     @staticmethod
     def _initialize_glove(vocabulary: Vocabulary) -> torch.Tensor:
@@ -143,11 +151,10 @@ class UpDownCaptioner(nn.Module):
 
     def forward(  # type: ignore
         self,
-        image_ids: torch.Tensor,
         image_features: torch.Tensor,
         caption_tokens: Optional[torch.Tensor] = None,
-        state_transition_matrix: Any = None,
-        num_candidates: Any = None,
+        fsm: torch.Tensor = None,
+        num_constraints: torch.Tensor = None,
     ) -> Dict[str, torch.Tensor]:
         r"""
         Given bottom-up image features, maximize the likelihood of paired captions during
@@ -228,14 +235,17 @@ class UpDownCaptioner(nn.Module):
             # beam search class (previous predictions and states only).
             beam_decode_step = functools.partial(self._decode_step, image_features)
 
-            # shape (all_top_k_predictions): (batch_size, beam_size, num_decoding_steps)
-            # shape (log_probabilities): (batch_size, beam_size)
+            # shape (all_top_k_predictions): (batch_size, net_beam_size, num_decoding_steps)
+            # shape (log_probabilities): (batch_size, net_beam_size)
             all_top_k_predictions, log_probabilities = self._beam_search.search(
-                start_predictions, states, beam_decode_step, state_transition_matrix
+                start_predictions, states, beam_decode_step, fsm
             )
             if self._use_cbs:
                 best_predictions, _ = cbs_select_best_beam(
-                    all_top_k_predictions, log_probabilities, num_candidates
+                    all_top_k_predictions,
+                    log_probabilities,
+                    num_constraints,
+                    self._min_constraints_to_satisfy,
                 )
             else:
                 # Pick the first beam as predictions (normal beam search)

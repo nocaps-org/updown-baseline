@@ -79,7 +79,7 @@ class Config(object):
         val/test images.
 
     DATA.CBS.CLASS_HIERARCHY: "data/cbs/class_hierarchy.json"
-        Path to a JSON file containinga hierarchy of Open Images object classes as
+        Path to a JSON file containing a hierarchy of Open Images object classes as
         `here <https://storage.googleapis.com/openimages/2018_04/bbox_labels_600_hierarchy_visualizer/circle.html>`_.
 
     DATA.CBS.WORDFORMS: "data/cbs/constraint_wordforms.tsv"
@@ -97,9 +97,6 @@ class Config(object):
 
     DATA.CBS.MAX_WORDS_PER_CONSTRAINT: 3
         Maximum number of allowed words in a multi-word object class name.
-
-    DATA.CBS.MIN_CONSTRAINTS_TO_SATISFY: 2
-        Minimum number of constraints to satisfy during decoding.
     __________
 
     MODEL:
@@ -123,6 +120,9 @@ class Config(object):
 
     MODEL.USE_CBS: False
         Whether to use Constrained Beam Search during decoding.
+
+    MODEL.MIN_CONSTRAINTS_TO_SATISFY: 2
+        Minimum number of constraints to satisfy during CBS decoding.
     __________
 
     OPTIM:
@@ -173,7 +173,6 @@ class Config(object):
         self._C.DATA.CBS.NMS_THRESHOLD = 0.85
         self._C.DATA.CBS.MAX_GIVEN_CONSTRAINTS = 3
         self._C.DATA.CBS.MAX_WORDS_PER_CONSTRAINT = 3
-        self._C.DATA.CBS.MIN_CONSTRAINTS_TO_SATISFY = 2
 
         self._C.MODEL = CN()
         self._C.MODEL.IMAGE_FEATURE_SIZE = 2048
@@ -182,6 +181,7 @@ class Config(object):
         self._C.MODEL.ATTENTION_PROJECTION_SIZE = 768
         self._C.MODEL.BEAM_SIZE = 5
         self._C.MODEL.USE_CBS = True
+        self._C.MODEL.MIN_CONSTRAINTS_TO_SATISFY = 2
 
         self._C.OPTIM = CN()
         self._C.OPTIM.BATCH_SIZE = 150
@@ -228,7 +228,7 @@ class Config(object):
         "more than three words is not supported."
 
         assert (
-            self._C.DATA.CBS.MIN_CONSTRAINTS_TO_SATISFY <= self._C.DATA.CBS.MAX_GIVEN_CONSTRAINTS
+            self._C.MODEL.MIN_CONSTRAINTS_TO_SATISFY <= self._C.DATA.CBS.MAX_GIVEN_CONSTRAINTS
         ), "Satisfying more constraints than maximum specified is not possible."
 
     def __getattr__(self, attr: str):

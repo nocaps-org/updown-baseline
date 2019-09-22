@@ -3,12 +3,22 @@ RANDOM_SEED: 0
 DATA:
   VOCABULARY: data/vocabulary
   TRAIN_FEATURES: data/coco_train2017_vg_detector_features_adaptive.h5
-  INFER_FEATURES: data/nocaps_val_vg_detector_features_adaptive.h5
+  INFER_FEATURES: data/nocaps_test_vg_detector_features_adaptive.h5
 
   TRAIN_CAPTIONS: data/coco/captions_train2017.json
-  INFER_CAPTIONS: data/nocaps/nocaps_val_image_info.json
+  INFER_CAPTIONS: data/nocaps/nocaps_test_image_info.json
 
   MAX_CAPTION_LENGTH: 20
+
+  CBS:
+    INFER_BOXES: data/cbs/nocaps_test_oi_detector_boxes.json
+    CLASS_HIERARCHY: data/cbs/bbox_hierarchy.json
+    WORDFORMS: data/cbs/constraint_wordforms.tsv
+
+    MAX_GIVEN_CONSTRAINTS: 3
+    MAX_WORDS_PER_CONSTRAINT: 3
+    MIN_CONSTRAINTS_TO_SATISFY: 2
+    NMS_THRESHOLD: 0.85
 
 MODEL:
   IMAGE_FEATURE_SIZE: 2048
@@ -16,7 +26,7 @@ MODEL:
   HIDDEN_SIZE: 1200
   ATTENTION_PROJECTION_SIZE: 768
   BEAM_SIZE: 5
-  USE_CBS: False
+  USE_CBS: True
 
 OPTIM:
   BATCH_SIZE: 150

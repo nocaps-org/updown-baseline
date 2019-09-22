@@ -52,29 +52,54 @@ class Config(object):
     DATA.VOCABULARY: "data/vocabulary"
         Path to a directory containing caption vocabulary (readable by AllenNLP).
 
-    DATA.TRAIN_FEATURES: "data/coco_train2017_resnet101_faster_rcnn_genome_adaptive.h5"
+    DATA.TRAIN_FEATURES: "data/coco_train2017_vg_detector_features_adaptive.h5"
         Path to an H5 file containing pre-extracted features from COCO train2017 images.
 
-    DATA.VAL_FEATURES: "data/nocaps_val_resnet101_faster_rcnn_genome_adaptive.h5"
-        Path to an H5 file containing pre-extracted features from nocaps val images.
-
-    DATA.TEST_FEATURES: "data/nocaps_test_resnet101_faster_rcnn_genome_adaptive.h5"
-        Path to an H5 file containing pre-extracted features from nocaps test images.
+    DATA.INFER_FEATURES: "data/nocaps_val_vg_detector_features_adaptive.h5"
+        Path to an H5 file containing pre-extracted features from nocaps val/test images.
 
     DATA.TRAIN_CAPTIONS: "data/coco/annotations/captions_train2017.json"
         Path to a JSON file containing COCO train2017 captions in COCO format.
 
-    DATA.VAL_CAPTIONS: "data/nocaps/annotations/nocaps_val_image_info.json"
-        Path to a JSON file containing nocaps val image info.
-        Captions are not available publicly.
-
-    DATA.TEST_CAPTIONS: "data/nocaps/annotations/nocaps_test_image_info.json"
-        Path to a JSON file containing nocaps test image info.
+    DATA.INFER_CAPTIONS: "data/nocaps/annotations/nocaps_val_image_info.json"
+        Path to a JSON file containing nocaps val/test image info.
         Captions are not available publicly.
 
     DATA.MAX_CAPTION_LENGTH: 20
         Maximum length of caption sequences for language modeling. Captions longer than this will
         be truncated to maximum length.
+    __________
+
+    DATA.CBS:
+        Collection of required data paths and configuration parameters for Constrained Beam Search
+        decoding.
+
+    DATA.CBS.INFER_BOXES: "data/cbs/nocaps_val_oi_detector_boxes.json"
+        Path to a JSON file containing detected bounding boxes (in COCO format) from nocaps
+        val/test images.
+
+    DATA.CBS.CLASS_HIERARCHY: "data/cbs/class_hierarchy.json"
+        Path to a JSON file containinga hierarchy of Open Images object classes as
+        `here <https://storage.googleapis.com/openimages/2018_04/bbox_labels_600_hierarchy_visualizer/circle.html>`_.
+
+    DATA.CBS.WORDFORMS: "data/cbs/constraint_wordforms.tsv"
+        Path to a TSV file containing word-forms of CBS constraints. First column is a word in
+        Open Images class names, second column are comma separated word-forms (singular, plural
+        etc.) which can satisfy the constraint.
+
+    DATA.CBS.NMS_THRESHOLD: 0.85
+        NMS threshold for suppressing generic object class names during constraint filtering,
+        for two boxes with IoU higher than this threshold, "dog" suppresses "animal".
+
+    DATA.CBS.MAX_GIVEN_CONSTRAINTS: 3
+        Maximum number of constraints which can be specified for CBS decoding. Constraints are
+        selected based on the prediction confidence score of their corresponding bounding boxes.
+
+    DATA.CBS.MAX_WORDS_PER_CONSTRAINT: 3
+        Maximum number of allowed words in a multi-word object class name.
+
+    DATA.CBS.MIN_CONSTRAINTS_TO_SATISFY: 2
+        Minimum number of constraints to satisfy during decoding.
     __________
 
     MODEL:
@@ -95,6 +120,9 @@ class Config(object):
 
     MODEL.BEAM_SIZE: 5
         Beam size for finding the most likely caption during decoding time (evaluation).
+
+    MODEL.USE_CBS: False
+        Whether to use Constrained Beam Search during decoding.
     __________
 
     OPTIM:
@@ -128,21 +156,24 @@ class Config(object):
         self._C.DATA.VOCABULARY = "data/vocabulary"
 
         self._C.DATA.TRAIN_FEATURES = "data/coco_train2017_vg_detector_features_adaptive.h5"
-        self._C.DATA.VAL_FEATURES = "data/nocaps_val_vg_detector_features_adaptive.h5"
-        self._C.DATA.TEST_FEATURES = "data/nocaps_test_vg_detector_features_adaptive.h5"
+        self._C.DATA.INFER_FEATURES = "data/nocaps_val_vg_detector_features_adaptive.h5"
 
+        # DATA.INFER_CAPTIONS don't contain the captions, just the image info.
         self._C.DATA.TRAIN_CAPTIONS = "data/coco/captions_train2017.json"
-
-        # These really don't contain the captions, just the image info.
-        self._C.DATA.VAL_CAPTIONS = "data/nocaps/nocaps_val_image_info.json"
-        self._C.DATA.TEST_CAPTIONS = "data/nocaps/nocaps_test_image_info.json"
-
-        self._C.DATA.CBS_VAL_CONSTRAINTS = "data/nocaps_val_oi_detector_boxes.json"
-        self._C.DATA.CBS_TEST_CONSTRAINTS = "data/nocaps_test_oi_detector_boxes.json"
-        self._C.DATA.CBS_WORDFORMS = "data/cbs/oi_concepts_to_words.txt"
-        self._C.DATA.CBS_CLASS_HIERARCHY_PATH = "data/cbs/bbox_labels_600_hierarchy_readable.json"
+        self._C.DATA.INFER_CAPTIONS = "data/nocaps/nocaps_val_image_info.json"
 
         self._C.DATA.MAX_CAPTION_LENGTH = 20
+
+        # There's no parameter as DATA.CBS.TRAIN_BOXES because CBS is inference-only.
+        self._C.DATA.CBS = CN()
+        self._C.DATA.CBS.INFER_BOXES = "data/cbs/nocaps_val_oi_detector_boxes.json"
+        self._C.DATA.CBS.CLASS_HIERARCHY = "data/cbs/class_hierarchy.json"
+        self._C.DATA.CBS.WORDFORMS = "data/cbs/constraint_wordforms.tsv"
+
+        self._C.DATA.CBS.NMS_THRESHOLD = 0.85
+        self._C.DATA.CBS.MAX_GIVEN_CONSTRAINTS = 3
+        self._C.DATA.CBS.MAX_WORDS_PER_CONSTRAINT = 3
+        self._C.DATA.CBS.MIN_CONSTRAINTS_TO_SATISFY = 2
 
         self._C.MODEL = CN()
         self._C.MODEL.IMAGE_FEATURE_SIZE = 2048
@@ -164,11 +195,15 @@ class Config(object):
         self._C.merge_from_file(config_yaml)
         self._C.merge_from_list(config_override)
 
+        # Do any sort of validations required for the config.
+        self._validate()
+
         # Make an instantiated object of this class immutable.
         self._C.freeze()
 
     def dump(self, file_path: str):
-        r"""Save config at the specified file path.
+        r"""
+        Save config at the specified file path.
 
         Parameters
         ----------
@@ -176,6 +211,25 @@ class Config(object):
             (YAML) path to save config at.
         """
         self._C.dump(stream=open(file_path, "w"))
+
+    def _validate(self):
+        r"""
+        Perform all validations to raise error if there are parameters with conflicting values.
+        """
+        if self._C.MODEL.USE_CBS:
+            assert self._C.MODEL.EMBEDDING_SIZE == 300, "Word embeddings must be initialized with"
+            " fixed GloVe Embeddings (300 dim) for performing CBS decoding during inference. "
+            f"Found MODEL.EMBEDDING_SIZE as {self._C.MODEL.EMBEDDING_SIZE} instead."
+
+        assert self._C.DATA.CBS.MAX_GIVEN_CONSTRAINTS <= 3, "Specifying more than 3 constraints "
+        "to CBS is not supported."
+
+        assert self._C.DATA.CBS.MAX_WORDS_PER_CONSTRAINT <= 3, "Allowing CBS constraints with "
+        "more than three words is not supported."
+
+        assert (
+            self._C.DATA.CBS.MIN_CONSTRAINTS_TO_SATISFY <= self._C.DATA.CBS.MAX_GIVEN_CONSTRAINTS
+        ), "Satisfying more constraints than maximum specified is not possible."
 
     def __getattr__(self, attr: str):
         return self._C.__getattr__(attr)

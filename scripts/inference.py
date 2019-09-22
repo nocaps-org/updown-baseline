@@ -15,7 +15,7 @@ from updown.data.datasets import EvaluationDataset, EvaluationDatasetWithConstra
 from updown.models import UpDownCaptioner
 from updown.types import Prediction
 from updown.utils.evalai import NocapsEvaluator
-import updown.utils.cbs as cbs_utils
+from updown.utils.cbs import add_constraint_words_to_vocabulary
 
 
 parser = argparse.ArgumentParser(
@@ -43,7 +43,6 @@ parser.add_argument(
 parser.add_argument(
     "--in-memory", action="store_true", help="Whether to load image features in memory."
 )
-parser.add_argument("--run-val", action="store_true", help="Whether to run val data")
 parser.add_argument(
     "--checkpoint-path", required=True, help="Path to load checkpoint and run inference on."
 )
@@ -88,37 +87,38 @@ if __name__ == "__main__":
     # If we wish to use CBS during evaluation or inference, expand the vocabulary and add
     # constraint words derived from Open Images classes.
     if _C.MODEL.USE_CBS:
-        vocabulary = cbs_utils.add_constraint_words_to_vocabulary(
-            vocabulary, wordforms_tsvpath=_C.DATA.CBS_WORDFORMS
+        vocabulary = add_constraint_words_to_vocabulary(
+            vocabulary, wordforms_tsvpath=_C.DATA.CBS.WORDFORMS
         )
 
     if _C.MODEL.USE_CBS:
-        eval_dataset = EvaluationDatasetWithConstraints(
+        infer_dataset = EvaluationDatasetWithConstraints(
             vocabulary,
-            image_features_h5path=_C.DATA.TEST_FEATURES
-            if not _A.run_val
-            else _C.DATA.VAL_FEATURES,
-            boxes_jsonpath=_C.DATA.CBS_TEST_CONSTRAINTS
-            if not _A.run_val
-            else _C.DATA.CBS_VAL_CONSTRAINTS,
-            wordforms_tsvpath=_C.DATA.CBS_WORDFORMS,
-            hierarchy_jsonpath=_C.DATA.CBS_CLASS_HIERARCHY_PATH,
+            image_features_h5path=_C.DATA.INFER_FEATURES,
+            boxes_jsonpath=_C.DATA.CBS.INFER_BOXES,
+            wordforms_tsvpath=_C.DATA.CBS.WORDFORMS,
+            hierarchy_jsonpath=_C.DATA.CBS.CLASS_HIERARCHY,
             in_memory=_A.in_memory,
         )
     else:
-        eval_dataset = EvaluationDataset(
-            image_features_h5path=_C.DATA.TEST_FEATURES
-            if not _A.run_val
-            else _C.DATA.VAL_FEATURES,
-            in_memory=_A.in_memory,
+        infer_dataset = EvaluationDataset(
+            image_features_h5path=_C.DATA.INFER_FEATURES, in_memory=_A.in_memory
         )
 
-    eval_dataloader = DataLoader(
-        eval_dataset,
-        batch_size=_C.OPTIM.BATCH_SIZE // _C.MODEL.BEAM_SIZE,
+    batch_size = _C.OPTIM.BATCH_SIZE // _C.MODEL.BEAM_SIZE
+    # Reduce batch size by total FSM states during CBS, because net beam size is larger.
+    if _C.MODEL.USE_CBS:
+        batch_size = batch_size // (
+            2 ** _C.DATA.CBS.MAX_GIVEN_CONSTRAINTS * _C.DATA.CBS.MAX_WORDS_PER_CONSTRAINT
+        )
+        batch_size = batch_size or 1
+
+    infer_dataloader = DataLoader(
+        infer_dataset,
+        batch_size=batch_size,
         shuffle=False,
         num_workers=_A.cpu_workers,
-        collate_fn=eval_dataset.collate_fn,
+        collate_fn=infer_dataset.collate_fn,
     )
 
     model = UpDownCaptioner(
@@ -129,6 +129,7 @@ if __name__ == "__main__":
         attention_projection_size=_C.MODEL.ATTENTION_PROJECTION_SIZE,
         beam_size=_C.MODEL.BEAM_SIZE,
         max_caption_length=_C.DATA.MAX_CAPTION_LENGTH,
+        use_cbs=_C.MODEL.USE_CBS,
     ).to(device)
 
     # Load checkpoint to run inference.
@@ -145,7 +146,7 @@ if __name__ == "__main__":
 
     predictions: List[Prediction] = []
 
-    for batch in tqdm(eval_dataloader):
+    for batch in tqdm(infer_dataloader):
 
         # keys: {"image_id", "image_features"}
         batch = {key: value.to(device) for key, value in batch.items()}

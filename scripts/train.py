@@ -22,7 +22,7 @@ from updown.types import Prediction
 from updown.utils.checkpointing import CheckpointManager
 from updown.utils.common import cycle
 from updown.utils.evalai import NocapsEvaluator
-import updown.utils.cbs as cbs_utils
+from updown.utils.cbs import add_constraint_words_to_vocabulary
 
 
 parser = argparse.ArgumentParser("Train an UpDown Captioner on COCO train2017 split.")
@@ -114,8 +114,8 @@ if __name__ == "__main__":
     # If we wish to use CBS during evaluation or inference, expand the vocabulary and add
     # constraint words derived from Open Images classes.
     if _C.MODEL.USE_CBS:
-        vocabulary = cbs_utils.add_constraint_words_to_vocabulary(
-            vocabulary, wordforms_tsvpath=_C.DATA.CBS_WORDFORMS
+        vocabulary = add_constraint_words_to_vocabulary(
+            vocabulary, wordforms_tsvpath=_C.DATA.CBS.WORDFORMS
         )
 
     train_dataset = TrainingDataset(
@@ -138,21 +138,30 @@ if __name__ == "__main__":
     if _C.MODEL.USE_CBS:
         val_dataset = EvaluationDatasetWithConstraints(
             vocabulary,
-            image_features_h5path=_C.DATA.VAL_FEATURES,
-            boxes_jsonpath=_C.DATA.CBS_VAL_CONSTRAINTS,
-            wordforms_tsvpath=_C.DATA.CBS_WORDFORMS,
-            hierarchy_jsonpath=_C.DATA.CBS_CLASS_HIERARCHY_PATH,
+            image_features_h5path=_C.DATA.INFER_FEATURES,
+            boxes_jsonpath=_C.DATA.CBS.INFER_BOXES,
+            wordforms_tsvpath=_C.DATA.CBS.WORDFORMS,
+            hierarchy_jsonpath=_C.DATA.CBS.CLASS_HIERARCHY,
             in_memory=_A.in_memory,
         )
     else:
         val_dataset = EvaluationDataset(
-            image_features_h5path=_C.DATA.VAL_FEATURES, in_memory=_A.in_memory
+            image_features_h5path=_C.DATA.INFER_FEATURES, in_memory=_A.in_memory
         )
 
     # Use a smaller batch during validation (accounting beam size) to fit in memory.
+    val_batch_size = _C.OPTIM.BATCH_SIZE // _C.MODEL.BEAM_SIZE
+
+    # Reduce batch size by total FSM states during CBS, because net beam size is larger.
+    if _C.MODEL.USE_CBS:
+        val_batch_size = val_batch_size // (
+            2 ** _C.DATA.CBS.MAX_GIVEN_CONSTRAINTS * _C.DATA.CBS.MAX_WORDS_PER_CONSTRAINT
+        )
+        val_batch_size = val_batch_size or 1
+
     val_dataloader = DataLoader(
         val_dataset,
-        batch_size=5 if _C.MODEL.USE_CBS else _C.OPTIM.BATCH_SIZE // _C.MODEL.BEAM_SIZE,
+        batch_size=val_batch_size,
         shuffle=False,
         num_workers=_A.cpu_workers,
         collate_fn=val_dataset.collate_fn,
@@ -166,6 +175,7 @@ if __name__ == "__main__":
         attention_projection_size=_C.MODEL.ATTENTION_PROJECTION_SIZE,
         beam_size=_C.MODEL.BEAM_SIZE,
         max_caption_length=_C.DATA.MAX_CAPTION_LENGTH,
+        use_cbs=_C.MODEL.USE_CBS,
     ).to(device)
 
     if len(_A.gpu_ids) > 1 and -1 not in _A.gpu_ids:

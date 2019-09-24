@@ -91,19 +91,10 @@ if __name__ == "__main__":
             vocabulary, wordforms_tsvpath=_C.DATA.CBS.WORDFORMS
         )
 
-    if _C.MODEL.USE_CBS:
-        infer_dataset = EvaluationDatasetWithConstraints(
-            vocabulary,
-            image_features_h5path=_C.DATA.INFER_FEATURES,
-            boxes_jsonpath=_C.DATA.CBS.INFER_BOXES,
-            wordforms_tsvpath=_C.DATA.CBS.WORDFORMS,
-            hierarchy_jsonpath=_C.DATA.CBS.CLASS_HIERARCHY,
-            in_memory=_A.in_memory,
-        )
-    else:
-        infer_dataset = EvaluationDataset(
-            image_features_h5path=_C.DATA.INFER_FEATURES, in_memory=_A.in_memory
-        )
+    EvaluationDatasetClass = (
+        EvaluationDatasetWithConstraints if _C.MODEL.USE_CBS else EvaluationDataset
+    )
+    infer_dataset = EvaluationDatasetClass.from_config(_C, in_memory=_A.in_memory)
 
     batch_size = _C.OPTIM.BATCH_SIZE // _C.MODEL.BEAM_SIZE
     # Reduce batch size by total FSM states during CBS, because net beam size is larger.
@@ -121,19 +112,8 @@ if __name__ == "__main__":
         collate_fn=infer_dataset.collate_fn,
     )
 
-    model = UpDownCaptioner(
-        vocabulary,
-        image_feature_size=_C.MODEL.IMAGE_FEATURE_SIZE,
-        embedding_size=_C.MODEL.EMBEDDING_SIZE,
-        hidden_size=_C.MODEL.HIDDEN_SIZE,
-        attention_projection_size=_C.MODEL.ATTENTION_PROJECTION_SIZE,
-        beam_size=_C.MODEL.BEAM_SIZE,
-        max_caption_length=_C.DATA.MAX_CAPTION_LENGTH,
-        use_cbs=_C.MODEL.USE_CBS,
-        min_constraints_to_satisfy=_C.MODEL.MIN_CONSTRAINTS_TO_SATISFY,
-    ).to(device)
-
     # Load checkpoint to run inference.
+    model = UpDownCaptioner.from_config(_C).to(device)
     model.load_state_dict(torch.load(_A.checkpoint_path)["model"])
 
     if len(_A.gpu_ids) > 1 and -1 not in _A.gpu_ids:

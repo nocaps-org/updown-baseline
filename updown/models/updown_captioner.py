@@ -10,6 +10,7 @@ from allennlp.data import Vocabulary
 from allennlp.nn.beam_search import BeamSearch
 from allennlp.nn.util import add_sentence_boundary_token_ids, sequence_cross_entropy_with_logits
 
+from updown.config import Config
 from updown.modules import UpDownCell, ConstrainedBeamSearch
 from updown.utils.cbs import cbs_select_best_beam
 
@@ -116,6 +117,22 @@ class UpDownCaptioner(nn.Module):
         self._use_cbs = use_cbs
         self._min_constraints_to_satisfy = min_constraints_to_satisfy
 
+    @classmethod
+    def from_config(cls, config: Config, **kwargs) -> UpDownCaptioner:
+        r"""Instantiate this class directly from a :class:`~updown.config.Config`."""
+        _C = config
+        return cls(
+            vocabulary=Vocabulary.from_files(_C.DATA.VOCABULARY),
+            image_feature_size=_C.MODEL.IMAGE_FEATURE_SIZE,
+            embedding_size=_C.MODEL.EMBEDDING_SIZE,
+            hidden_size=_C.MODEL.HIDDEN_SIZE,
+            attention_projection_size=_C.MODEL.ATTENTION_PROJECTION_SIZE,
+            beam_size=_C.MODEL.BEAM_SIZE,
+            max_caption_length=_C.DATA.MAX_CAPTION_LENGTH,
+            use_cbs=_C.MODEL.USE_CBS,
+            min_constraints_to_satisfy=_C.MODEL.MIN_CONSTRAINTS_TO_SATISFY,
+        )
+
     @staticmethod
     def _initialize_glove(vocabulary: Vocabulary) -> torch.Tensor:
         r"""
@@ -170,6 +187,14 @@ class UpDownCaptioner(nn.Module):
             A tensor of shape ``(batch_size, max_caption_length)`` of tokenized captions. This
             tensor does not contain ``@@BOUNDARY@@`` tokens yet. Captions are not provided
             during evaluation.
+        fsm: torch.Tensor, optional (default = None)
+            A tensor of shape ``(batch_size, num_states, num_states, vocab_size)``: finite state
+            machines per instance, represented as adjacency matrix. For a particular instance
+            ``[_, s1, s2, v] = 1`` shows a transition from state ``s1`` to ``s2`` on decoding
+            ``v`` token (constraint). Would be ``None`` for regular beam search decoding.
+        num_constraints: torch.Tensor, optional (default = None)
+            A tensor of shape ``(batch_size, )`` containing the total number of given constraints
+            for CBS. Would be ``None`` for regular beam search decoding.
 
         Returns
         -------
@@ -177,13 +202,6 @@ class UpDownCaptioner(nn.Module):
             Decoded captions and/or per-instance cross entropy loss, dict with keys either
             ``{"predictions"}`` or ``{"loss"}``.
         """
-
-        # shape: (batch_size, num_boxes * image_feature_size) for adaptive features.
-        # shape: (batch_size, num_boxes, image_feature_size) for fixed features.
-        batch_size = image_features.size(0)
-
-        # shape: (batch_size, num_boxes, image_feature_size)
-        image_features = image_features.view(batch_size, -1, self.image_feature_size)
 
         # Initialize states at zero-th timestep.
         states = None

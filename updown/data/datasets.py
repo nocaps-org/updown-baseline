@@ -5,6 +5,7 @@ import torch
 from torch.utils.data import Dataset
 from allennlp.data import Vocabulary
 
+from updown.config import Config
 from updown.data.readers import CocoCaptionsReader, ConstraintBoxesReader, ImageFeaturesReader
 from updown.modules.constraint import CBSConstraint
 from updown.types import (
@@ -52,12 +53,23 @@ class TrainingDataset(Dataset):
         max_caption_length: int = 20,
         in_memory: bool = True,
     ) -> None:
-
         self._vocabulary = vocabulary
         self._image_features_reader = ImageFeaturesReader(image_features_h5path, in_memory)
         self._captions_reader = CocoCaptionsReader(captions_jsonpath)
 
         self._max_caption_length = max_caption_length
+
+    @classmethod
+    def from_config(cls, config: Config, **kwargs) -> TrainingDataset:
+        r"""Instantiate this class directly from a :class:`~updown.config.Config`."""
+        _C = config
+        return cls(
+            vocabulary=Vocabulary.from_files(_C.DATA.VOCABULARY),
+            image_features_h5path=_C.DATA.INFER_FEATURES,
+            captions_jsonpath=_C.DATA.TRAIN_CAPTIONS,
+            max_caption_length=_C.DATA.MAX_CAPTION_LENGTH,
+            **kwargs
+        )
 
     def __len__(self) -> int:
         # Number of training examples are number of captions, not number of images.
@@ -85,7 +97,6 @@ class TrainingDataset(Dataset):
         return item
 
     def collate_fn(self, batch_list: List[TrainingInstance]) -> TrainingBatch:
-
         # Convert lists of ``image_id``s and ``caption_tokens``s as tensors.
         image_id = torch.tensor([instance["image_id"] for instance in batch_list]).long()
         caption_tokens = torch.tensor(
@@ -125,9 +136,14 @@ class EvaluationDataset(Dataset):
     """
 
     def __init__(self, image_features_h5path: str, in_memory: bool = True) -> None:
-
         self._image_features_reader = ImageFeaturesReader(image_features_h5path, in_memory)
         self._image_ids = sorted(list(self._image_features_reader._map.keys()))
+
+    @classmethod
+    def from_config(cls, config: Config, **kwargs) -> EvaluationDataset:
+        r"""Instantiate this class directly from a :class:`~updown.config.Config`."""
+        _C = config
+        return cls(image_features_h5path=_C.DATA.INFER_FEATURES, **kwargs)
 
     def __len__(self) -> int:
         return len(self._image_ids)
@@ -219,6 +235,19 @@ class EvaluationDatasetWithConstraints(EvaluationDataset):
         )
         self._fsm_builder = FiniteStateMachineBuilder(vocabulary, wordforms_tsvpath)
 
+    @classmethod
+    def from_config(cls, config: Config, **kwargs) -> EvaluationDatasetWithConstraints:
+        r"""Instantiate this class directly from a :class:`~updown.config.Config`."""
+        _C = config
+        return cls(
+            vocabulary=Vocabulary.from_files(_C.DATA.VOCABULARY),
+            image_features_h5path=_C.DATA.INFER_FEATURES,
+            boxes_jsonpath=_C.DATA.CBS.INFER_BOXES,
+            wordforms_tsvpath=_C.DATA.CBS.WORDFORMS,
+            hierarchy_jsonpath=_C.DATA.CBS.CLASS_HIERARCHY,
+            **kwargs
+        )
+
     def __getitem__(self, index: int) -> EvaluationInstanceWithConstraints:
         item: EvaluationInstance = super().__getitem__(index)
 
@@ -244,13 +273,12 @@ class EvaluationDatasetWithConstraints(EvaluationDataset):
 
 
 def _collate_image_features(image_features_list: List[np.ndarray]) -> np.ndarray:
-    # This will be (num_boxes * image_features_size) for adaptive features because of the way
-    # these features are saved in H5 file.
-    image_features_dim = [instance.shape[0] for instance in image_features_list]
+    num_boxes = [instance.shape[0] for instance in image_features_list]
+    image_feature_size = image_features_list[0].shape[-1]
 
     image_features = np.zeros(
-        (len(image_features_list), max(image_features_dim)), dtype=np.float32
+        (len(image_features_list), max(num_boxes), image_feature_size), dtype=np.float32
     )
-    for i, (instance, dim) in enumerate(zip(image_features_list, image_features_dim)):
+    for i, (instance, dim) in enumerate(zip(image_features_list, num_boxes)):
         image_features[i, :dim] = instance
     return image_features

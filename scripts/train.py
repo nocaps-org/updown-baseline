@@ -118,13 +118,7 @@ if __name__ == "__main__":
             vocabulary, wordforms_tsvpath=_C.DATA.CBS.WORDFORMS
         )
 
-    train_dataset = TrainingDataset(
-        vocabulary,
-        image_features_h5path=_C.DATA.TRAIN_FEATURES,
-        captions_jsonpath=_C.DATA.TRAIN_CAPTIONS,
-        max_caption_length=_C.DATA.MAX_CAPTION_LENGTH,
-        in_memory=_A.in_memory,
-    )
+    train_dataset = TrainingDataset.from_config(_C, in_memory=_A.in_memory)
     train_dataloader = DataLoader(
         train_dataset,
         batch_size=_C.OPTIM.BATCH_SIZE,
@@ -135,19 +129,10 @@ if __name__ == "__main__":
     # Make dataloader cyclic for sampling batches perpetually.
     train_dataloader = cycle(train_dataloader, device)
 
-    if _C.MODEL.USE_CBS:
-        val_dataset = EvaluationDatasetWithConstraints(
-            vocabulary,
-            image_features_h5path=_C.DATA.INFER_FEATURES,
-            boxes_jsonpath=_C.DATA.CBS.INFER_BOXES,
-            wordforms_tsvpath=_C.DATA.CBS.WORDFORMS,
-            hierarchy_jsonpath=_C.DATA.CBS.CLASS_HIERARCHY,
-            in_memory=_A.in_memory,
-        )
-    else:
-        val_dataset = EvaluationDataset(
-            image_features_h5path=_C.DATA.INFER_FEATURES, in_memory=_A.in_memory
-        )
+    EvaluationDatasetClass = (
+        EvaluationDatasetWithConstraints if _C.MODEL.USE_CBS else EvaluationDataset
+    )
+    val_dataset = EvaluationDatasetClass.from_config(_C, in_memory=_A.in_memory)
 
     # Use a smaller batch during validation (accounting beam size) to fit in memory.
     val_batch_size = _C.OPTIM.BATCH_SIZE // _C.MODEL.BEAM_SIZE
@@ -167,18 +152,7 @@ if __name__ == "__main__":
         collate_fn=val_dataset.collate_fn,
     )
 
-    model = UpDownCaptioner(
-        vocabulary,
-        image_feature_size=_C.MODEL.IMAGE_FEATURE_SIZE,
-        embedding_size=_C.MODEL.EMBEDDING_SIZE,
-        hidden_size=_C.MODEL.HIDDEN_SIZE,
-        attention_projection_size=_C.MODEL.ATTENTION_PROJECTION_SIZE,
-        beam_size=_C.MODEL.BEAM_SIZE,
-        max_caption_length=_C.DATA.MAX_CAPTION_LENGTH,
-        use_cbs=_C.MODEL.USE_CBS,
-        min_constraints_to_satisfy=_C.MODEL.MIN_CONSTRAINTS_TO_SATISFY,
-    ).to(device)
-
+    model = UpDownCaptioner.from_config(_C).to(device)
     if len(_A.gpu_ids) > 1 and -1 not in _A.gpu_ids:
         # Don't wrap to DataParallel if single GPU ID or -1 (CPU) is provided.
         model = nn.DataParallel(model, _A.gpu_ids)

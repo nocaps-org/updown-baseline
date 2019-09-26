@@ -1,0 +1,204 @@
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+  <head>
+    <meta charset="utf-8" />
+
+    <!-- Global site tag (gtag.js) - Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=UA-120523111-2"></script>
+    <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'UA-120523111-2');
+    </script>
+
+    <link href="https://fonts.googleapis.com/css?family=Inconsolata&display=swap" rel="stylesheet">
+
+
+    <title>updown.utils.cbs &#8212; updown 1.0.0 documentation</title>
+
+    <link rel="stylesheet" href="../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="../_static/language_data.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="updown.utils.checkpointing" href="utils.checkpointing.html" />
+    <link rel="prev" title="updown.utils" href="utils.html" />
+   
+  <link rel="stylesheet" href="../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="module-updown.utils.cbs">
+<span id="updown-utils-cbs"></span><h1>updown.utils.cbs<a class="headerlink" href="#module-updown.utils.cbs" title="Permalink to this headline">¶</a></h1>
+<dl class="function">
+<dt id="updown.utils.cbs.add_constraint_words_to_vocabulary">
+<code class="sig-prename descclassname">updown.utils.cbs.</code><code class="sig-name descname">add_constraint_words_to_vocabulary</code><span class="sig-paren">(</span><em class="sig-param">vocabulary:allennlp.data.vocabulary.Vocabulary</em>, <em class="sig-param">wordforms_tsvpath:str</em>, <em class="sig-param">namespace:str='tokens'</em><span class="sig-paren">)</span> &#x2192; allennlp.data.vocabulary.Vocabulary<a class="reference external" href="https://github.com/nocaps-org/updown-baseline/blob/master/updown/utils/cbs.py#L13-L47"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#updown.utils.cbs.add_constraint_words_to_vocabulary" title="Permalink to this definition">¶</a></dt>
+<dd><p>Expand the <code class="xref py py-class docutils literal notranslate"><span class="pre">Vocabulary</span></code> with CBS constraint words. We do not
+need to worry about duplicate words in constraints and caption vocabulary. AllenNLP avoids
+duplicates automatically.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>vocabulary: allennlp.data.vocabulary.Vocabulary</strong></dt><dd><p>The vocabulary to be expanded with provided words.</p>
+</dd>
+<dt><strong>wordforms_tsvpath: str</strong></dt><dd><p>Path to a TSV file containing two fields: first is the name of Open Images object class
+and second field is a comma separated list of words (possibly singular and plural forms
+of the word etc.) which could be CBS constraints.</p>
+</dd>
+<dt><strong>namespace: str, optional (default=”tokens”)</strong></dt><dd><p>The namespace of <code class="xref py py-class docutils literal notranslate"><span class="pre">Vocabulary</span></code> to add these words.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt>allennlp.data.vocabulary.Vocabulary</dt><dd><p>The expanded <code class="xref py py-class docutils literal notranslate"><span class="pre">Vocabulary</span></code> with all the words added.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="updown.utils.cbs.cbs_select_best_beam">
+<code class="sig-prename descclassname">updown.utils.cbs.</code><code class="sig-name descname">cbs_select_best_beam</code><span class="sig-paren">(</span><em class="sig-param">beams:torch.Tensor</em>, <em class="sig-param">beam_log_probabilities:torch.Tensor</em>, <em class="sig-param">given_constraints:torch.Tensor</em>, <em class="sig-param">min_constraints_to_satisfy:int=2</em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/nocaps-org/updown-baseline/blob/master/updown/utils/cbs.py#L270-L367"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#updown.utils.cbs.cbs_select_best_beam" title="Permalink to this definition">¶</a></dt>
+<dd><p>Select the best beam decoded with the highest likelihood, and which also satisfies specified
+minimum constraints out of a total number of given constraints.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The implementation of this function goes hand-in-hand with the FSM building implementation
+in <code class="xref py py-meth docutils literal notranslate"><span class="pre">build()</span></code>, which specifies which state
+satisfies which (basically, how many) constraints. If the “definition” of states change,
+then selection of beams also changes accordingly.</p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>beams: torch.Tensor</strong></dt><dd><p>A tensor of shape <code class="docutils literal notranslate"><span class="pre">(batch_size,</span> <span class="pre">num_states,</span> <span class="pre">beam_size,</span> <span class="pre">max_decoding_steps)</span></code> containing
+decoded beams by <code class="xref py py-class docutils literal notranslate"><span class="pre">ConstrainedBeamSearch</span></code>. These beams are
+sorted according to their likelihood (descending) in <code class="docutils literal notranslate"><span class="pre">beam_size</span></code> dimension.
+already best beams in their state.</p>
+</dd>
+<dt><strong>beam_log_probabilities: torch.Tensor</strong></dt><dd><p>A tensor of shape <code class="docutils literal notranslate"><span class="pre">(batch_size,</span> <span class="pre">num_states,</span> <span class="pre">beam_size)</span></code> containing likelihood of decoded
+beams.</p>
+</dd>
+<dt><strong>given_constraints: torch.Tensor</strong></dt><dd><p>A tensor of shape <code class="docutils literal notranslate"><span class="pre">(batch_size,</span> <span class="pre">)</span></code> containing number of constraints given at the start
+of decoding.</p>
+</dd>
+<dt><strong>min_constraints_to_satisfy: int, optional (default = 2)</strong></dt><dd><p>Minimum number of constraints to satisfy. This is either 2, or <code class="docutils literal notranslate"><span class="pre">given_constraints</span></code> if
+they are less than 2. Beams corresponding to states not satisfying at least these number
+of constraints will be dropped. Only up to 3 supported.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt>Tuple[torch.Tensor, torch.Tensor]</dt><dd><p>A tuple with two elements: decoded sequence (be am) which has highest likelihood among
+beams satisfying constraints, and the likelihood value of chosen beam.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../index.html">updown</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="config.html">updown.config</a></li>
+<li class="toctree-l1"><a class="reference internal" href="data.html">updown.data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="models.html">updown.models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="modules.html">updown.modules</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="utils.html">updown.utils</a><ul class="current">
+<li class="toctree-l2 current"><a class="current reference internal" href="#">updown.utils.cbs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="utils.checkpointing.html">updown.utils.checkpointing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="utils.common.html">updown.utils.common</a></li>
+<li class="toctree-l2"><a class="reference internal" href="utils.evalai.html">updown.utils.evalai</a></li>
+</ul>
+</li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../index.html">Documentation overview</a><ul>
+  <li><a href="utils.html">updown.utils</a><ul>
+      <li>Previous: <a href="utils.html" title="previous chapter">updown.utils</a></li>
+      <li>Next: <a href="utils.checkpointing.html" title="next chapter">updown.utils.checkpointing</a></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2019, nocaps team.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 2.2.0</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="../_sources/updown/utils.cbs.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

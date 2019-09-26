@@ -52,7 +52,7 @@
 <p>This module provides package-wide configuration management.</p>
 <dl class="class">
 <dt id="updown.config.Config">
-<em class="property">class </em><code class="sig-prename descclassname">updown.config.</code><code class="sig-name descname">Config</code><span class="sig-paren">(</span><em class="sig-param">config_yaml: str</em>, <em class="sig-param">config_override: List[Any] = []</em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/nocaps-org/updown-baseline/blob/master/updown/config.py#L7-L186"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#updown.config.Config" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">updown.config.</code><code class="sig-name descname">Config</code><span class="sig-paren">(</span><em class="sig-param">config_yaml: str</em>, <em class="sig-param">config_override: List[Any] = []</em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/nocaps-org/updown-baseline/blob/master/updown/config.py#L7-L246"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#updown.config.Config" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
 <p>A collection of all the required configuration parameters. This class is a nested dict-like
 structure, with nested keys accessible as attributes. It contains sensible default values for
@@ -97,22 +97,39 @@ be relative to project root directory. If elsewhere, symlinking is recommended.<
 </dd>
 <dt><strong>DATA.VOCABULARY: “data/vocabulary”</strong></dt><dd><p>Path to a directory containing caption vocabulary (readable by AllenNLP).</p>
 </dd>
-<dt><strong>DATA.TRAIN_FEATURES: “data/coco_train2017_resnet101_faster_rcnn_genome_adaptive.h5”</strong></dt><dd><p>Path to an H5 file containing pre-extracted features from COCO train2017 images.</p>
+<dt><strong>DATA.TRAIN_FEATURES: “data/coco_train2017_vg_detector_features_adaptive.h5”</strong></dt><dd><p>Path to an H5 file containing pre-extracted features from COCO train2017 images.</p>
 </dd>
-<dt><strong>DATA.VAL_FEATURES: “data/nocaps_val_resnet101_faster_rcnn_genome_adaptive.h5”</strong></dt><dd><p>Path to an H5 file containing pre-extracted features from nocaps val images.</p>
-</dd>
-<dt><strong>DATA.TEST_FEATURES: “data/nocaps_test_resnet101_faster_rcnn_genome_adaptive.h5”</strong></dt><dd><p>Path to an H5 file containing pre-extracted features from nocaps test images.</p>
+<dt><strong>DATA.INFER_FEATURES: “data/nocaps_val_vg_detector_features_adaptive.h5”</strong></dt><dd><p>Path to an H5 file containing pre-extracted features from nocaps val/test images.</p>
 </dd>
 <dt><strong>DATA.TRAIN_CAPTIONS: “data/coco/annotations/captions_train2017.json”</strong></dt><dd><p>Path to a JSON file containing COCO train2017 captions in COCO format.</p>
 </dd>
-<dt><strong>DATA.VAL_CAPTIONS: “data/nocaps/annotations/nocaps_val_image_info.json”</strong></dt><dd><p>Path to a JSON file containing nocaps val image info.
-Captions are not available publicly.</p>
-</dd>
-<dt><strong>DATA.TEST_CAPTIONS: “data/nocaps/annotations/nocaps_test_image_info.json”</strong></dt><dd><p>Path to a JSON file containing nocaps test image info.
+<dt><strong>DATA.INFER_CAPTIONS: “data/nocaps/annotations/nocaps_val_image_info.json”</strong></dt><dd><p>Path to a JSON file containing nocaps val/test image info.
 Captions are not available publicly.</p>
 </dd>
 <dt><strong>DATA.MAX_CAPTION_LENGTH: 20</strong></dt><dd><p>Maximum length of caption sequences for language modeling. Captions longer than this will
 be truncated to maximum length.</p>
+</dd>
+<dt><strong>__________</strong></dt><dd></dd>
+<dt><strong>DATA.CBS:</strong></dt><dd><p>Collection of required data paths and configuration parameters for Constrained Beam Search
+decoding.</p>
+</dd>
+<dt><strong>DATA.CBS.INFER_BOXES: “data/cbs/nocaps_val_oi_detector_boxes.json”</strong></dt><dd><p>Path to a JSON file containing detected bounding boxes (in COCO format) from nocaps
+val/test images.</p>
+</dd>
+<dt><strong>DATA.CBS.CLASS_HIERARCHY: “data/cbs/class_hierarchy.json”</strong></dt><dd><p>Path to a JSON file containing a hierarchy of Open Images object classes as
+<a class="reference external" href="https://storage.googleapis.com/openimages/2018_04/bbox_labels_600_hierarchy_visualizer/circle.html">here</a>.</p>
+</dd>
+<dt><strong>DATA.CBS.WORDFORMS: “data/cbs/constraint_wordforms.tsv”</strong></dt><dd><p>Path to a TSV file containing word-forms of CBS constraints. First column is a word in
+Open Images class names, second column are comma separated word-forms (singular, plural
+etc.) which can satisfy the constraint.</p>
+</dd>
+<dt><strong>DATA.CBS.NMS_THRESHOLD: 0.85</strong></dt><dd><p>NMS threshold for suppressing generic object class names during constraint filtering,
+for two boxes with IoU higher than this threshold, “dog” suppresses “animal”.</p>
+</dd>
+<dt><strong>DATA.CBS.MAX_GIVEN_CONSTRAINTS: 3</strong></dt><dd><p>Maximum number of constraints which can be specified for CBS decoding. Constraints are
+selected based on the prediction confidence score of their corresponding bounding boxes.</p>
+</dd>
+<dt><strong>DATA.CBS.MAX_WORDS_PER_CONSTRAINT: 3</strong></dt><dd><p>Maximum number of allowed words in a multi-word object class name.</p>
 </dd>
 <dt><strong>__________</strong></dt><dd></dd>
 <dt><strong>MODEL:</strong></dt><dd><p>Parameters controlling the model architecture of UpDown Captioner.</p>
@@ -127,6 +144,10 @@ be truncated to maximum length.</p>
 attention weights.</p>
 </dd>
 <dt><strong>MODEL.BEAM_SIZE: 5</strong></dt><dd><p>Beam size for finding the most likely caption during decoding time (evaluation).</p>
+</dd>
+<dt><strong>MODEL.USE_CBS: False</strong></dt><dd><p>Whether to use Constrained Beam Search during decoding.</p>
+</dd>
+<dt><strong>MODEL.MIN_CONSTRAINTS_TO_SATISFY: 2</strong></dt><dd><p>Minimum number of constraints to satisfy during CBS decoding.</p>
 </dd>
 <dt><strong>__________</strong></dt><dd></dd>
 <dt><strong>OPTIM:</strong></dt><dd><p>Optimization hyper-parameters, relevant during training a particular phase.</p>
@@ -148,7 +169,7 @@ attention weights.</p>
 </dl>
 <dl class="method">
 <dt id="updown.config.Config.dump">
-<code class="sig-name descname">dump</code><span class="sig-paren">(</span><em class="sig-param">self</em>, <em class="sig-param">file_path:str</em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/nocaps-org/updown-baseline/blob/master/updown/config.py#L164-L172"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#updown.config.Config.dump" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">dump</code><span class="sig-paren">(</span><em class="sig-param">self</em>, <em class="sig-param">file_path:str</em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/nocaps-org/updown-baseline/blob/master/updown/config.py#L204-L213"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#updown.config.Config.dump" title="Permalink to this definition">¶</a></dt>
 <dd><p>Save config at the specified file path.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -158,6 +179,12 @@ attention weights.</p>
 </dl>
 </dd>
 </dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="updown.config.Config._validate">
+<code class="sig-name descname">_validate</code><span class="sig-paren">(</span><em class="sig-param">self</em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/nocaps-org/updown-baseline/blob/master/updown/config.py#L215-L232"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#updown.config.Config._validate" title="Permalink to this definition">¶</a></dt>
+<dd><p>Perform all validations to raise error if there are parameters with conflicting values.</p>
 </dd></dl>
 
 </dd></dl>
@@ -224,7 +251,7 @@ attention weights.</p>
       &copy;2019, nocaps team.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 2.1.0</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 2.2.0</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
       |

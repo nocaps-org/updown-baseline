@@ -50,7 +50,7 @@
 <span id="updown-utils-evalai"></span><h1>updown.utils.evalai<a class="headerlink" href="#module-updown.utils.evalai" title="Permalink to this headline">¶</a></h1>
 <dl class="class">
 <dt id="updown.utils.evalai.NocapsEvaluator">
-<em class="property">class </em><code class="sig-prename descclassname">updown.utils.evalai.</code><code class="sig-name descname">NocapsEvaluator</code><span class="sig-paren">(</span><em class="sig-param">phase: str = 'val'</em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/nocaps-org/updown-baseline/blob/master/updown/utils/evalai.py#L12-L147"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#updown.utils.evalai.NocapsEvaluator" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">updown.utils.evalai.</code><code class="sig-name descname">NocapsEvaluator</code><span class="sig-paren">(</span><em class="sig-param">phase: str = 'val'</em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/nocaps-org/updown-baseline/blob/master/updown/utils/evalai.py#L12-L148"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#updown.utils.evalai.NocapsEvaluator" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
 <p>A utility class to submit model predictions on nocaps splits to EvalAI, and retrieve model
 performance based on captioning metrics (such as CIDEr, SPICE).</p>
@@ -74,7 +74,7 @@ submissions to test split on EvalAI are very less, and can exhaust in a few iter
 the number of submissions to val split are practically infinite.</p>
 <dl class="method">
 <dt id="updown.utils.evalai.NocapsEvaluator.evaluate">
-<code class="sig-name descname">evaluate</code><span class="sig-paren">(</span><em class="sig-param">self, predictions:List[updown.types.Prediction], iteration:Union[int, NoneType]=None</em><span class="sig-paren">)</span> &#x2192; Dict[str, Dict[str, float]]<a class="reference external" href="https://github.com/nocaps-org/updown-baseline/blob/master/updown/utils/evalai.py#L44-L147"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#updown.utils.evalai.NocapsEvaluator.evaluate" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">evaluate</code><span class="sig-paren">(</span><em class="sig-param">self, predictions:List[updown.types.Prediction], iteration:Union[int, NoneType]=None</em><span class="sig-paren">)</span> &#x2192; Dict[str, Dict[str, float]]<a class="reference external" href="https://github.com/nocaps-org/updown-baseline/blob/master/updown/utils/evalai.py#L44-L148"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#updown.utils.evalai.NocapsEvaluator.evaluate" title="Permalink to this definition">¶</a></dt>
 <dd><p>Take the model predictions (in COCO format), submit them to EvalAI, and retrieve model
 performance based on captioning metrics.</p>
 <dl class="field-list">
@@ -135,6 +135,7 @@ performance based on captioning metrics.</p>
 <li class="toctree-l1"><a class="reference internal" href="models.html">updown.models</a></li>
 <li class="toctree-l1"><a class="reference internal" href="modules.html">updown.modules</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="utils.html">updown.utils</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="utils.cbs.html">updown.utils.cbs</a></li>
 <li class="toctree-l2"><a class="reference internal" href="utils.checkpointing.html">updown.utils.checkpointing</a></li>
 <li class="toctree-l2"><a class="reference internal" href="utils.common.html">updown.utils.common</a></li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#">updown.utils.evalai</a></li>
@@ -178,7 +179,7 @@ performance based on captioning metrics.</p>
       &copy;2019, nocaps team.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 2.1.0</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 2.2.0</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
       |

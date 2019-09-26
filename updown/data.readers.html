@@ -50,7 +50,7 @@
   <div class="section" id="module-updown.data.readers">
 <span id="updown-data-readers"></span><h1>updown.data.readers<a class="headerlink" href="#module-updown.data.readers" title="Permalink to this headline">¶</a></h1>
 <p>A Reader simply reads data from disk and returns it _almost_ as is. Readers should be
-utilized by PyTorch <a class="reference external" href="https://pytorch.org/docs/stable/data.html#torch.utils.data.Dataset" title="(in PyTorch vmaster (1.1.0 ))"><code class="xref py py-class docutils literal notranslate"><span class="pre">Dataset</span></code></a>. Too much of data pre-processing is not
+utilized by PyTorch <a class="reference external" href="https://pytorch.org/docs/stable/data.html#torch.utils.data.Dataset" title="(in PyTorch vmaster (1.2.0a0+8554416 ))"><code class="xref py py-class docutils literal notranslate"><span class="pre">Dataset</span></code></a>. Too much of data pre-processing is not
 recommended in the reader, such as tokenizing words to integers, embedding tokens, or passing
 an image through a pre-trained CNN. Each reader must implement at least two methods:</p>
 <blockquote>
@@ -61,7 +61,7 @@ an image through a pre-trained CNN. Each reader must implement at least two meth
 </div></blockquote>
 <dl class="class">
 <dt id="updown.data.readers.ImageFeaturesReader">
-<em class="property">class </em><code class="sig-prename descclassname">updown.data.readers.</code><code class="sig-name descname">ImageFeaturesReader</code><span class="sig-paren">(</span><em class="sig-param">features_h5path: str</em>, <em class="sig-param">in_memory: bool = False</em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/nocaps-org/updown-baseline/blob/master/updown/data/readers.py#L19-L81"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#updown.data.readers.ImageFeaturesReader" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">updown.data.readers.</code><code class="sig-name descname">ImageFeaturesReader</code><span class="sig-paren">(</span><em class="sig-param">features_h5path: str</em>, <em class="sig-param">in_memory: bool = False</em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/nocaps-org/updown-baseline/blob/master/updown/data/readers.py#L21-L91"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#updown.data.readers.ImageFeaturesReader" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
 <p>A reader for H5 files containing pre-extracted image features. A typical image features file
 should have at least two H5 datasets, named <code class="docutils literal notranslate"><span class="pre">image_id</span></code> and <code class="docutils literal notranslate"><span class="pre">features</span></code>. It may optionally
@@ -91,7 +91,7 @@ in size. Set this to true if you have sufficient RAM.</p>
 
 <dl class="class">
 <dt id="updown.data.readers.CocoCaptionsReader">
-<em class="property">class </em><code class="sig-prename descclassname">updown.data.readers.</code><code class="sig-name descname">CocoCaptionsReader</code><span class="sig-paren">(</span><em class="sig-param">captions_jsonpath: str</em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/nocaps-org/updown-baseline/blob/master/updown/data/readers.py#L84-L123"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#updown.data.readers.CocoCaptionsReader" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">updown.data.readers.</code><code class="sig-name descname">CocoCaptionsReader</code><span class="sig-paren">(</span><em class="sig-param">captions_jsonpath: str</em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/nocaps-org/updown-baseline/blob/master/updown/data/readers.py#L94-L134"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#updown.data.readers.CocoCaptionsReader" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
 <p>A reader for annotation files containing training captions. These are JSON files in COCO
 format.</p>
@@ -99,6 +99,27 @@ format.</p>
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><dl class="simple">
 <dt><strong>captions_jsonpath</strong><span class="classifier">str</span></dt><dd><p>Path to a JSON file containing training captions in COCO format (COCO train2017 usually).</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="class">
+<dt id="updown.data.readers.ConstraintBoxesReader">
+<em class="property">class </em><code class="sig-prename descclassname">updown.data.readers.</code><code class="sig-name descname">ConstraintBoxesReader</code><span class="sig-paren">(</span><em class="sig-param">boxes_jsonpath: str</em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/nocaps-org/updown-baseline/blob/master/updown/data/readers.py#L137-L188"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#updown.data.readers.ConstraintBoxesReader" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>A reader for annotation files containing detected bounding boxes (in COCO format). The JSON
+file should have <code class="docutils literal notranslate"><span class="pre">categories</span></code>, <code class="docutils literal notranslate"><span class="pre">images</span></code> and <code class="docutils literal notranslate"><span class="pre">annotations</span></code> fields (similar to COCO
+instance annotations).</p>
+<p>For our use cases, the detections are from an object detector trained using Open Images.
+These can be produced for any set of images by following instructions
+<a class="reference external" href="https://github.com/nocaps-org/image-feature-extractors#extract-boxes-from-oi-detector">here</a>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>boxes_jsonpath: str</strong></dt><dd><p>Path to a JSON file containing bounding box detections in COCO format (nocaps val/test
+usually).</p>
 </dd>
 </dl>
 </dd>
@@ -173,7 +194,7 @@ format.</p>
       &copy;2019, nocaps team.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 2.1.0</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 2.2.0</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
       |

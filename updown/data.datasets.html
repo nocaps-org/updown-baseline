@@ -51,11 +51,11 @@
 <span id="updown-data-datasets"></span><h1>updown.data.datasets<a class="headerlink" href="#module-updown.data.datasets" title="Permalink to this headline">¶</a></h1>
 <dl class="class">
 <dt id="updown.data.datasets.TrainingDataset">
-<em class="property">class </em><code class="sig-prename descclassname">updown.data.datasets.</code><code class="sig-name descname">TrainingDataset</code><span class="sig-paren">(</span><em class="sig-param">vocabulary: allennlp.data.vocabulary.Vocabulary</em>, <em class="sig-param">captions_jsonpath: str</em>, <em class="sig-param">image_features_h5path: str</em>, <em class="sig-param">max_caption_length: int = 20</em>, <em class="sig-param">in_memory: bool = True</em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/nocaps-org/updown-baseline/blob/master/updown/data/datasets.py#L13-L102"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#updown.data.datasets.TrainingDataset" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">updown.data.datasets.</code><code class="sig-name descname">TrainingDataset</code><span class="sig-paren">(</span><em class="sig-param">vocabulary: allennlp.data.vocabulary.Vocabulary</em>, <em class="sig-param">captions_jsonpath: str</em>, <em class="sig-param">image_features_h5path: str</em>, <em class="sig-param">max_caption_length: int = 20</em>, <em class="sig-param">in_memory: bool = True</em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/nocaps-org/updown-baseline/blob/master/updown/data/datasets.py#L21-L115"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#updown.data.datasets.TrainingDataset" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.utils.data.dataset.Dataset</span></code></p>
 <p>A PyTorch <cite>:class:`~torch.utils.data.Dataset</cite> providing access to COCO train2017 captions data
 for training <a class="reference internal" href="models.updown_captioner.html#updown.models.updown_captioner.UpDownCaptioner" title="updown.models.updown_captioner.UpDownCaptioner"><code class="xref py py-class docutils literal notranslate"><span class="pre">UpDownCaptioner</span></code></a>. When wrapped with a
-<a class="reference external" href="https://pytorch.org/docs/stable/data.html#torch.utils.data.DataLoader" title="(in PyTorch vmaster (1.1.0 ))"><code class="xref py py-class docutils literal notranslate"><span class="pre">DataLoader</span></code></a>, it provides batches of image features and tokenized
+<a class="reference external" href="https://pytorch.org/docs/stable/data.html#torch.utils.data.DataLoader" title="(in PyTorch vmaster (1.2.0a0+8554416 ))"><code class="xref py py-class docutils literal notranslate"><span class="pre">DataLoader</span></code></a>, it provides batches of image features and tokenized
 ground truth captions.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -75,13 +75,91 @@ be truncated to maximum length.</p>
 </dd>
 </dl>
 <p class="rubric">Notes</p>
-<p>Use <code class="xref py py-mod docutils literal notranslate"><span class="pre">collate_fn</span></code> when wrapping with a <a class="reference external" href="https://pytorch.org/docs/stable/data.html#torch.utils.data.DataLoader" title="(in PyTorch vmaster (1.1.0 ))"><code class="xref py py-class docutils literal notranslate"><span class="pre">DataLoader</span></code></a>.</p>
+<p>Use <code class="xref py py-mod docutils literal notranslate"><span class="pre">collate_fn</span></code> when wrapping with a <a class="reference external" href="https://pytorch.org/docs/stable/data.html#torch.utils.data.DataLoader" title="(in PyTorch vmaster (1.2.0a0+8554416 ))"><code class="xref py py-class docutils literal notranslate"><span class="pre">DataLoader</span></code></a>.</p>
+<dl class="method">
+<dt id="updown.data.datasets.TrainingDataset.from_config">
+<em class="property">classmethod </em><code class="sig-name descname">from_config</code><span class="sig-paren">(</span><em class="sig-param">config:updown.config.Config</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/nocaps-org/updown-baseline/blob/master/updown/data/datasets.py#L61-L71"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#updown.data.datasets.TrainingDataset.from_config" title="Permalink to this definition">¶</a></dt>
+<dd><p>Instantiate this class directly from a <a class="reference internal" href="config.html#updown.config.Config" title="updown.config.Config"><code class="xref py py-class docutils literal notranslate"><span class="pre">Config</span></code></a>.</p>
+</dd></dl>
+
 </dd></dl>
 
 <dl class="class">
 <dt id="updown.data.datasets.EvaluationDataset">
-<em class="property">class </em><code class="sig-prename descclassname">updown.data.datasets.</code><code class="sig-name descname">EvaluationDataset</code><span class="sig-paren">(</span><em class="sig-param">image_features_h5path: str</em>, <em class="sig-param">in_memory: bool = True</em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/nocaps-org/updown-baseline/blob/master/updown/data/datasets.py#L105-L131"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#updown.data.datasets.EvaluationDataset" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">updown.data.datasets.</code><code class="sig-name descname">EvaluationDataset</code><span class="sig-paren">(</span><em class="sig-param">image_features_h5path: str</em>, <em class="sig-param">in_memory: bool = True</em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/nocaps-org/updown-baseline/blob/master/updown/data/datasets.py#L118-L167"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#updown.data.datasets.EvaluationDataset" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.utils.data.dataset.Dataset</span></code></p>
+<p>A PyTorch <a class="reference external" href="https://pytorch.org/docs/stable/data.html#torch.utils.data.Dataset" title="(in PyTorch vmaster (1.2.0a0+8554416 ))"><code class="xref py py-class docutils literal notranslate"><span class="pre">Dataset</span></code></a> providing image features for inference. When
+wrapped with a <a class="reference external" href="https://pytorch.org/docs/stable/data.html#torch.utils.data.DataLoader" title="(in PyTorch vmaster (1.2.0a0+8554416 ))"><code class="xref py py-class docutils literal notranslate"><span class="pre">DataLoader</span></code></a>, it provides batches of image features.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>vocabulary: allennlp.data.Vocabulary</strong></dt><dd><p>AllenNLP’s vocabulary containing token to index mapping for captions vocabulary.</p>
+</dd>
+<dt><strong>image_features_h5path: str</strong></dt><dd><p>Path to an H5 file containing pre-extracted features from nocaps val/test images.</p>
+</dd>
+<dt><strong>in_memory: bool, optional (default = True)</strong></dt><dd><p>Whether to load all image features in memory.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>Use <code class="xref py py-mod docutils literal notranslate"><span class="pre">collate_fn</span></code> when wrapping with a <a class="reference external" href="https://pytorch.org/docs/stable/data.html#torch.utils.data.DataLoader" title="(in PyTorch vmaster (1.2.0a0+8554416 ))"><code class="xref py py-class docutils literal notranslate"><span class="pre">DataLoader</span></code></a>.</p>
+<dl class="method">
+<dt id="updown.data.datasets.EvaluationDataset.from_config">
+<em class="property">classmethod </em><code class="sig-name descname">from_config</code><span class="sig-paren">(</span><em class="sig-param">config:updown.config.Config</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/nocaps-org/updown-baseline/blob/master/updown/data/datasets.py#L141-L145"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#updown.data.datasets.EvaluationDataset.from_config" title="Permalink to this definition">¶</a></dt>
+<dd><p>Instantiate this class directly from a <a class="reference internal" href="config.html#updown.config.Config" title="updown.config.Config"><code class="xref py py-class docutils literal notranslate"><span class="pre">Config</span></code></a>.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="updown.data.datasets.EvaluationDatasetWithConstraints">
+<em class="property">class </em><code class="sig-prename descclassname">updown.data.datasets.</code><code class="sig-name descname">EvaluationDatasetWithConstraints</code><span class="sig-paren">(</span><em class="sig-param">vocabulary: allennlp.data.vocabulary.Vocabulary</em>, <em class="sig-param">image_features_h5path: str</em>, <em class="sig-param">boxes_jsonpath: str</em>, <em class="sig-param">wordforms_tsvpath: str</em>, <em class="sig-param">hierarchy_jsonpath: str</em>, <em class="sig-param">nms_threshold: float = 0.85</em>, <em class="sig-param">max_given_constraints: int = 3</em>, <em class="sig-param">in_memory: bool = True</em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/nocaps-org/updown-baseline/blob/master/updown/data/datasets.py#L170-L271"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#updown.data.datasets.EvaluationDatasetWithConstraints" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#updown.data.datasets.EvaluationDataset" title="updown.data.datasets.EvaluationDataset"><code class="xref py py-class docutils literal notranslate"><span class="pre">updown.data.datasets.EvaluationDataset</span></code></a></p>
+<p>A PyTorch <a class="reference external" href="https://pytorch.org/docs/stable/data.html#torch.utils.data.Dataset" title="(in PyTorch vmaster (1.2.0a0+8554416 ))"><code class="xref py py-class docutils literal notranslate"><span class="pre">Dataset</span></code></a> providing image features for inference, along
+with constraints for <code class="xref py py-class docutils literal notranslate"><span class="pre">ConstrainedBeamSearch</span></code>. When wrapped with a
+<a class="reference external" href="https://pytorch.org/docs/stable/data.html#torch.utils.data.DataLoader" title="(in PyTorch vmaster (1.2.0a0+8554416 ))"><code class="xref py py-class docutils literal notranslate"><span class="pre">DataLoader</span></code></a>, it provides batches of image features, Finite State
+Machines built (per instance) from constraints, and number of constraints used to make these.</p>
+<p>Finite State Machines as represented as adjacency matrices (Tensors) with state transitions
+corresponding to specific constraint (word) occurrence while decoding). We return the number
+of constraints used to make an FSM because it is required while selecting which decoded beams
+satisfied constraints. Refer <a class="reference internal" href="utils.cbs.html#updown.utils.cbs.cbs_select_best_beam" title="updown.utils.cbs.cbs_select_best_beam"><code class="xref py py-func docutils literal notranslate"><span class="pre">cbs_select_best_beam()</span></code></a> for more details.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>vocabulary: allennlp.data.Vocabulary</strong></dt><dd><p>AllenNLP’s vocabulary containing token to index mapping for captions vocabulary.</p>
+</dd>
+<dt><strong>image_features_h5path: str</strong></dt><dd><p>Path to an H5 file containing pre-extracted features from nocaps val/test images.</p>
+</dd>
+<dt><strong>boxes_jsonpath: str</strong></dt><dd><p>Path to a JSON file containing bounding box detections in COCO format (nocaps val/test
+usually).</p>
+</dd>
+<dt><strong>wordforms_tsvpath: str</strong></dt><dd><p>Path to a TSV file containing two fields: first is the name of Open Images object class
+and second field is a comma separated list of words (possibly singular and plural forms
+of the word etc.) which could be CBS constraints.</p>
+</dd>
+<dt><strong>hierarchy_jsonpath: str</strong></dt><dd><p>Path to a JSON file containing a hierarchy of Open Images object classes as
+<a class="reference external" href="https://storage.googleapis.com/openimages/2018_04/bbox_labels_600_hierarchy_visualizer/circle.html">here</a>.</p>
+</dd>
+<dt><strong>nms_threshold: float, optional (default = 0.85)</strong></dt><dd><p>NMS threshold for suppressing generic object class names during constraint filtering,
+for two boxes with IoU higher than this threshold, “dog” suppresses “animal”.</p>
+</dd>
+<dt><strong>max_given_constraints: int, optional (default = 3)</strong></dt><dd><p>Maximum number of constraints which can be specified for CBS decoding. Constraints are
+selected based on the prediction confidence score of their corresponding bounding boxes.</p>
+</dd>
+<dt><strong>in_memory: bool, optional (default = True)</strong></dt><dd><p>Whether to load all image features in memory.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>Use <code class="xref py py-mod docutils literal notranslate"><span class="pre">collate_fn</span></code> when wrapping with a <a class="reference external" href="https://pytorch.org/docs/stable/data.html#torch.utils.data.DataLoader" title="(in PyTorch vmaster (1.2.0a0+8554416 ))"><code class="xref py py-class docutils literal notranslate"><span class="pre">DataLoader</span></code></a>.</p>
+<dl class="method">
+<dt id="updown.data.datasets.EvaluationDatasetWithConstraints.from_config">
+<em class="property">classmethod </em><code class="sig-name descname">from_config</code><span class="sig-paren">(</span><em class="sig-param">config:updown.config.Config</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/nocaps-org/updown-baseline/blob/master/updown/data/datasets.py#L237-L248"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#updown.data.datasets.EvaluationDatasetWithConstraints.from_config" title="Permalink to this definition">¶</a></dt>
+<dd><p>Instantiate this class directly from a <a class="reference internal" href="config.html#updown.config.Config" title="updown.config.Config"><code class="xref py py-class docutils literal notranslate"><span class="pre">Config</span></code></a>.</p>
+</dd></dl>
+
 </dd></dl>
 
 </div>
@@ -152,7 +230,7 @@ be truncated to maximum length.</p>
       &copy;2019, nocaps team.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 2.1.0</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 2.2.0</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
       |

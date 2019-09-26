@@ -51,6 +51,7 @@
 
 <div class="genindex-jumpbox">
  <a href="#_"><strong>_</strong></a>
+ | <a href="#A"><strong>A</strong></a>
  | <a href="#B"><strong>B</strong></a>
  | <a href="#C"><strong>C</strong></a>
  | <a href="#D"><strong>D</strong></a>
@@ -70,11 +71,23 @@
 </li>
       <li><a href="updown/models.updown_captioner.html#updown.models.updown_captioner.UpDownCaptioner._decode_step">_decode_step() (updown.models.updown_captioner.UpDownCaptioner method)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="updown/models.updown_captioner.html#updown.models.updown_captioner.UpDownCaptioner._get_loss">_get_loss() (updown.models.updown_captioner.UpDownCaptioner method)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="updown/models.updown_captioner.html#updown.models.updown_captioner.UpDownCaptioner._initialize_glove">_initialize_glove() (updown.models.updown_captioner.UpDownCaptioner static method)</a>
+</li>
       <li><a href="updown/modules.attention.html#updown.modules.attention.BottomUpTopDownAttention._project_image_features">_project_image_features (updown.modules.attention.BottomUpTopDownAttention attribute)</a>
+</li>
+      <li><a href="updown/config.html#updown.config.Config._validate">_validate() (updown.config.Config method)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="A">A</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="updown/utils.cbs.html#updown.utils.cbs.add_constraint_words_to_vocabulary">add_constraint_words_to_vocabulary() (in module updown.utils.cbs)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -90,6 +103,8 @@
 <h2 id="C">C</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="updown/utils.cbs.html#updown.utils.cbs.cbs_select_best_beam">cbs_select_best_beam() (in module updown.utils.cbs)</a>
+</li>
       <li><a href="updown/utils.checkpointing.html#updown.utils.checkpointing.CheckpointManager">CheckpointManager (class in updown.utils.checkpointing)</a>
 </li>
       <li><a href="updown/data.readers.html#updown.data.readers.CocoCaptionsReader">CocoCaptionsReader (class in updown.data.readers)</a>
@@ -97,6 +112,8 @@
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="updown/config.html#updown.config.Config">Config (class in updown.config)</a>
+</li>
+      <li><a href="updown/data.readers.html#updown.data.readers.ConstraintBoxesReader">ConstraintBoxesReader (class in updown.data.readers)</a>
 </li>
       <li><a href="updown/utils.common.html#updown.utils.common.cycle">cycle() (in module updown.utils.common)</a>
 </li>
@@ -120,6 +137,8 @@
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="updown/data.datasets.html#updown.data.datasets.EvaluationDataset">EvaluationDataset (class in updown.data.datasets)</a>
 </li>
+      <li><a href="updown/data.datasets.html#updown.data.datasets.EvaluationDatasetWithConstraints">EvaluationDatasetWithConstraints (class in updown.data.datasets)</a>
+</li>
   </ul></td>
 </tr></table>
 
@@ -132,6 +151,18 @@
         <li><a href="updown/modules.attention.html#updown.modules.attention.BottomUpTopDownAttention.forward">(updown.modules.attention.BottomUpTopDownAttention method)</a>
 </li>
         <li><a href="updown/modules.updown_cell.html#updown.modules.updown_cell.UpDownCell.forward">(updown.modules.updown_cell.UpDownCell method)</a>
+</li>
+      </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="updown/data.datasets.html#updown.data.datasets.EvaluationDataset.from_config">from_config() (updown.data.datasets.EvaluationDataset class method)</a>
+
+      <ul>
+        <li><a href="updown/data.datasets.html#updown.data.datasets.EvaluationDatasetWithConstraints.from_config">(updown.data.datasets.EvaluationDatasetWithConstraints class method)</a>
+</li>
+        <li><a href="updown/data.datasets.html#updown.data.datasets.TrainingDataset.from_config">(updown.data.datasets.TrainingDataset class method)</a>
+</li>
+        <li><a href="updown/models.updown_captioner.html#updown.models.updown_captioner.UpDownCaptioner.from_config">(updown.models.updown_captioner.UpDownCaptioner class method)</a>
 </li>
       </ul></li>
   </ul></td>
@@ -182,9 +213,13 @@
 </li>
       <li><a href="updown/modules.attention.html#module-updown.modules.attention">updown.modules.attention (module)</a>
 </li>
+      <li><a href="updown/modules.cbs.html#module-updown.modules.cbs">updown.modules.cbs (module)</a>
+</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="updown/modules.updown_cell.html#module-updown.modules.updown_cell">updown.modules.updown_cell (module)</a>
+</li>
+      <li><a href="updown/utils.cbs.html#module-updown.utils.cbs">updown.utils.cbs (module)</a>
 </li>
       <li><a href="updown/utils.checkpointing.html#module-updown.utils.checkpointing">updown.utils.checkpointing (module)</a>
 </li>
@@ -258,7 +293,7 @@
       &copy;2019, nocaps team.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 2.1.0</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 2.2.0</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
     </div>

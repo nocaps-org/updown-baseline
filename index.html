@@ -49,16 +49,17 @@
   <div class="section" id="updown-captioner-baseline-for-nocaps">
 <h1>UpDown Captioner Baseline for <code class="docutils literal notranslate"><span class="pre">nocaps</span></code><a class="headerlink" href="#updown-captioner-baseline-for-nocaps" title="Permalink to this headline">¶</a></h1>
 <p>Baseline model for <a class="reference external" href="https://nocaps.org">nocaps</a> benchmark, a re-implementation based on the
-<a class="reference external" href="https://github.com/peteanderson80/up-down-captioner">UpDown image captioning model trained on the COCO dataset (only)</a>.</p>
+<a class="reference external" href="https://github.com/peteanderson80/up-down-captioner">UpDown image captioning model trained on the COCO dataset (only)</a>
+and with added support of decoding using [Constrained Beam Search][8].</p>
 <img alt="_images/qualitative_examples.jpg" src="_images/qualitative_examples.jpg" />
 <p>Get the source at <a class="reference external" href="https://www.github.com/nocaps-org/updown-baseline">&#64;nocaps-org/updown-baseline</a>.</p>
 <p>If you find this code useful, please consider citing:</p>
-<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>@article{nocaps,
-    author  = {Harsh Agrawal* and Karan Desai* and Yufei Wang and Xinlei Chen and Rishabh Jain and
-                Mark Johnson and Dhruv Batra and Devi Parikh and Stefan Lee and Peter Anderson},
-    title   = {{nocaps}: {n}ovel {o}bject {c}aptioning {a}t {s}cale},
-    journal = {arXiv preprint arXiv:1812.08658},
-    year    = {2018},
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>@inproceedings{nocaps2019,
+author    = {Harsh Agrawal* and Karan Desai* and Yufei Wang and Xinlei Chen and Rishabh Jain and
+            Mark Johnson and Dhruv Batra and Devi Parikh and Stefan Lee and Peter Anderson},
+title     = {{nocaps}: {n}ovel {o}bject {c}aptioning {a}t {s}cale},
+booktitle = {International Conference on Computer Vision (ICCV)},
+year      = {2019}
 }
 </pre></div>
 </div>
@@ -89,10 +90,12 @@
 </li>
 <li class="toctree-l1"><a class="reference internal" href="updown/modules.html">updown.modules</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="updown/modules.attention.html">updown.modules.attention</a></li>
+<li class="toctree-l2"><a class="reference internal" href="updown/modules.cbs.html">updown.modules.cbs</a></li>
 <li class="toctree-l2"><a class="reference internal" href="updown/modules.updown_cell.html">updown.modules.updown_cell</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="updown/utils.html">updown.utils</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="updown/utils.cbs.html">updown.utils.cbs</a></li>
 <li class="toctree-l2"><a class="reference internal" href="updown/utils.checkpointing.html">updown.utils.checkpointing</a></li>
 <li class="toctree-l2"><a class="reference internal" href="updown/utils.common.html">updown.utils.common</a></li>
 <li class="toctree-l2"><a class="reference internal" href="updown/utils.evalai.html">updown.utils.evalai</a></li>
@@ -161,7 +164,7 @@
       &copy;2019, nocaps team.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 2.1.0</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 2.2.0</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
       |

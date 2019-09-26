@@ -30,7 +30,7 @@
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
     <link rel="next" title="updown.utils" href="utils.html" />
-    <link rel="prev" title="updown.modules.attention" href="modules.attention.html" />
+    <link rel="prev" title="updown.modules.cbs" href="modules.cbs.html" />
    
   <link rel="stylesheet" href="../_static/custom.css" type="text/css" />
   
@@ -51,7 +51,7 @@
 <span id="updown-modules-updown-cell"></span><h1>updown.modules.updown_cell<a class="headerlink" href="#module-updown.modules.updown_cell" title="Permalink to this headline">¶</a></h1>
 <dl class="class">
 <dt id="updown.modules.updown_cell.UpDownCell">
-<em class="property">class </em><code class="sig-prename descclassname">updown.modules.updown_cell.</code><code class="sig-name descname">UpDownCell</code><span class="sig-paren">(</span><em class="sig-param">image_feature_size: int</em>, <em class="sig-param">embedding_size: int</em>, <em class="sig-param">hidden_size: int</em>, <em class="sig-param">attention_projection_size: int</em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/nocaps-org/updown-baseline/blob/master/updown/modules/updown_cell.py#L11-L200"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#updown.modules.updown_cell.UpDownCell" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">updown.modules.updown_cell.</code><code class="sig-name descname">UpDownCell</code><span class="sig-paren">(</span><em class="sig-param">image_feature_size: int</em>, <em class="sig-param">embedding_size: int</em>, <em class="sig-param">hidden_size: int</em>, <em class="sig-param">attention_projection_size: int</em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/nocaps-org/updown-baseline/blob/master/updown/modules/updown_cell.py#L11-L198"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#updown.modules.updown_cell.UpDownCell" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code></p>
 <p>The basic computation unit of <a class="reference internal" href="models.updown_captioner.html#updown.models.updown_captioner.UpDownCaptioner" title="updown.models.updown_captioner.UpDownCaptioner"><code class="xref py py-class docutils literal notranslate"><span class="pre">UpDownCaptioner</span></code></a>.</p>
 <p>The architecture (<a class="reference external" href="https://arxiv.org/abs/1707.07998">Anderson et al. 2017 (Fig. 3)</a>)
@@ -81,7 +81,7 @@ features  --&gt; | BUTD Attention |  |
 </pre></div>
 </div>
 <p>If <a class="reference internal" href="models.updown_captioner.html#updown.models.updown_captioner.UpDownCaptioner" title="updown.models.updown_captioner.UpDownCaptioner"><code class="xref py py-class docutils literal notranslate"><span class="pre">UpDownCaptioner</span></code></a> is analogous to an
-<a class="reference external" href="https://pytorch.org/docs/stable/nn.html#torch.nn.LSTM" title="(in PyTorch vmaster (1.1.0 ))"><code class="xref py py-class docutils literal notranslate"><span class="pre">LSTM</span></code></a>, then this class would be analogous to <a class="reference external" href="https://pytorch.org/docs/stable/nn.html#torch.nn.LSTMCell" title="(in PyTorch vmaster (1.1.0 ))"><code class="xref py py-class docutils literal notranslate"><span class="pre">LSTMCell</span></code></a>.</p>
+<a class="reference external" href="https://pytorch.org/docs/stable/nn.html#torch.nn.LSTM" title="(in PyTorch vmaster (1.2.0a0+8554416 ))"><code class="xref py py-class docutils literal notranslate"><span class="pre">LSTM</span></code></a>, then this class would be analogous to <a class="reference external" href="https://pytorch.org/docs/stable/nn.html#torch.nn.LSTMCell" title="(in PyTorch vmaster (1.2.0a0+8554416 ))"><code class="xref py py-class docutils literal notranslate"><span class="pre">LSTMCell</span></code></a>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><dl class="simple">
@@ -99,10 +99,10 @@ attention weights.</p>
 </dl>
 <dl class="method">
 <dt id="updown.modules.updown_cell.UpDownCell.forward">
-<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">self, image_features:torch.Tensor, token_embedding:torch.Tensor, states:Union[Dict[str, torch.Tensor], NoneType]=None</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, Dict[str, torch.Tensor]]<a class="reference external" href="https://github.com/nocaps-org/updown-baseline/blob/master/updown/modules/updown_cell.py#L85-L160"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#updown.modules.updown_cell.UpDownCell.forward" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">self, image_features:torch.Tensor, token_embedding:torch.Tensor, states:Union[Dict[str, torch.Tensor], NoneType]=None</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, Dict[str, torch.Tensor]]<a class="reference external" href="https://github.com/nocaps-org/updown-baseline/blob/master/updown/modules/updown_cell.py#L85-L159"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#updown.modules.updown_cell.UpDownCell.forward" title="Permalink to this definition">¶</a></dt>
 <dd><p>Given image features, input token embeddings of current time-step and LSTM states,
 predict output token embeddings for next time-step and update states. This behaves
-very similar to <a class="reference external" href="https://pytorch.org/docs/stable/nn.html#torch.nn.LSTMCell" title="(in PyTorch vmaster (1.1.0 ))"><code class="xref py py-class docutils literal notranslate"><span class="pre">LSTMCell</span></code></a>.</p>
+very similar to <a class="reference external" href="https://pytorch.org/docs/stable/nn.html#torch.nn.LSTMCell" title="(in PyTorch vmaster (1.2.0a0+8554416 ))"><code class="xref py py-class docutils literal notranslate"><span class="pre">LSTMCell</span></code></a>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><dl class="simple">
@@ -185,6 +185,7 @@ mask of shape <code class="docutils literal notranslate"><span class="pre">(batc
 <li class="toctree-l1"><a class="reference internal" href="models.html">updown.models</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="modules.html">updown.modules</a><ul class="current">
 <li class="toctree-l2"><a class="reference internal" href="modules.attention.html">updown.modules.attention</a></li>
+<li class="toctree-l2"><a class="reference internal" href="modules.cbs.html">updown.modules.cbs</a></li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#">updown.modules.updown_cell</a></li>
 </ul>
 </li>
@@ -196,7 +197,7 @@ mask of shape <code class="docutils literal notranslate"><span class="pre">(batc
 <ul>
   <li><a href="../index.html">Documentation overview</a><ul>
   <li><a href="modules.html">updown.modules</a><ul>
-      <li>Previous: <a href="modules.attention.html" title="previous chapter">updown.modules.attention</a></li>
+      <li>Previous: <a href="modules.cbs.html" title="previous chapter">updown.modules.cbs</a></li>
       <li>Next: <a href="utils.html" title="next chapter">updown.utils</a></li>
   </ul></li>
   </ul></li>
@@ -228,7 +229,7 @@ mask of shape <code class="docutils literal notranslate"><span class="pre">(batc
       &copy;2019, nocaps team.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 2.1.0</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 2.2.0</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
       |

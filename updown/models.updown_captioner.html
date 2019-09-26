@@ -51,7 +51,7 @@
 <span id="updown-models-updown-captioner"></span><h1>updown.models.updown_captioner<a class="headerlink" href="#module-updown.models.updown_captioner" title="Permalink to this headline">¶</a></h1>
 <dl class="class">
 <dt id="updown.models.updown_captioner.UpDownCaptioner">
-<em class="property">class </em><code class="sig-prename descclassname">updown.models.updown_captioner.</code><code class="sig-name descname">UpDownCaptioner</code><span class="sig-paren">(</span><em class="sig-param">vocabulary: allennlp.data.vocabulary.Vocabulary</em>, <em class="sig-param">image_feature_size: int</em>, <em class="sig-param">embedding_size: int</em>, <em class="sig-param">hidden_size: int</em>, <em class="sig-param">attention_projection_size: int</em>, <em class="sig-param">max_caption_length: int = 20</em>, <em class="sig-param">beam_size: int = 1</em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/nocaps-org/updown-baseline/blob/master/updown/models/updown_captioner.py#L14-L277"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#updown.models.updown_captioner.UpDownCaptioner" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">updown.models.updown_captioner.</code><code class="sig-name descname">UpDownCaptioner</code><span class="sig-paren">(</span><em class="sig-param">vocabulary: allennlp.data.vocabulary.Vocabulary</em>, <em class="sig-param">image_feature_size: int</em>, <em class="sig-param">embedding_size: int</em>, <em class="sig-param">hidden_size: int</em>, <em class="sig-param">attention_projection_size: int</em>, <em class="sig-param">max_caption_length: int = 20</em>, <em class="sig-param">beam_size: int = 1</em>, <em class="sig-param">use_cbs: bool = False</em>, <em class="sig-param">min_constraints_to_satisfy: int = 2</em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/nocaps-org/updown-baseline/blob/master/updown/models/updown_captioner.py#L18-L371"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#updown.models.updown_captioner.UpDownCaptioner" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code></p>
 <p>Image captioning model using bottom-up top-down attention, as in
 <a class="reference external" href="https://arxiv.org/abs/1707.07998">Anderson et al. 2017</a>. At training time, this model
@@ -59,8 +59,8 @@ maximizes the likelihood of ground truth caption, given image features. At infer
 given image features, captions are decoded using beam search.</p>
 <p>This captioner is basically a recurrent language model for caption sequences. Internally, it
 runs <a class="reference internal" href="modules.updown_cell.html#updown.modules.updown_cell.UpDownCell" title="updown.modules.updown_cell.UpDownCell"><code class="xref py py-class docutils literal notranslate"><span class="pre">UpDownCell</span></code></a> for multiple time-steps. If this class is
-analogous to an <a class="reference external" href="https://pytorch.org/docs/stable/nn.html#torch.nn.LSTM" title="(in PyTorch vmaster (1.1.0 ))"><code class="xref py py-class docutils literal notranslate"><span class="pre">LSTM</span></code></a>, then <a class="reference internal" href="modules.updown_cell.html#updown.modules.updown_cell.UpDownCell" title="updown.modules.updown_cell.UpDownCell"><code class="xref py py-class docutils literal notranslate"><span class="pre">UpDownCell</span></code></a>
-would be analogous to <a class="reference external" href="https://pytorch.org/docs/stable/nn.html#torch.nn.LSTMCell" title="(in PyTorch vmaster (1.1.0 ))"><code class="xref py py-class docutils literal notranslate"><span class="pre">LSTMCell</span></code></a>.</p>
+analogous to an <a class="reference external" href="https://pytorch.org/docs/stable/nn.html#torch.nn.LSTM" title="(in PyTorch vmaster (1.2.0a0+8554416 ))"><code class="xref py py-class docutils literal notranslate"><span class="pre">LSTM</span></code></a>, then <a class="reference internal" href="modules.updown_cell.html#updown.modules.updown_cell.UpDownCell" title="updown.modules.updown_cell.UpDownCell"><code class="xref py py-class docutils literal notranslate"><span class="pre">UpDownCell</span></code></a>
+would be analogous to <a class="reference external" href="https://pytorch.org/docs/stable/nn.html#torch.nn.LSTMCell" title="(in PyTorch vmaster (1.2.0a0+8554416 ))"><code class="xref py py-class docutils literal notranslate"><span class="pre">LSTMCell</span></code></a>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><dl class="simple">
@@ -80,12 +80,50 @@ be truncated to maximum length.</p>
 </dd>
 <dt><strong>beam_size: int, optional (default = 1)</strong></dt><dd><p>Beam size for finding the most likely caption during decoding time (evaluation).</p>
 </dd>
+<dt><strong>use_cbs: bool, optional (default = False)</strong></dt><dd><p>Whether to use <code class="xref py py-class docutils literal notranslate"><span class="pre">ConstrainedBeamSearch</span></code> for decoding.</p>
+</dd>
+<dt><strong>min_constraints_to_satisfy: int, optional (default = 2)</strong></dt><dd><p>Minimum number of constraints to satisfy for CBS, used for selecting the best beam. This
+will be ignored when <code class="docutils literal notranslate"><span class="pre">use_cbs</span></code> is False.</p>
+</dd>
 </dl>
 </dd>
 </dl>
 <dl class="method">
+<dt id="updown.models.updown_captioner.UpDownCaptioner.from_config">
+<em class="property">classmethod </em><code class="sig-name descname">from_config</code><span class="sig-paren">(</span><em class="sig-param">config:updown.config.Config</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/nocaps-org/updown-baseline/blob/master/updown/models/updown_captioner.py#L120-L134"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#updown.models.updown_captioner.UpDownCaptioner.from_config" title="Permalink to this definition">¶</a></dt>
+<dd><p>Instantiate this class directly from a <a class="reference internal" href="config.html#updown.config.Config" title="updown.config.Config"><code class="xref py py-class docutils literal notranslate"><span class="pre">Config</span></code></a>.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="updown.models.updown_captioner.UpDownCaptioner._initialize_glove">
+<em class="property">static </em><code class="sig-name descname">_initialize_glove</code><span class="sig-paren">(</span><em class="sig-param">vocabulary:allennlp.data.vocabulary.Vocabulary</em><span class="sig-paren">)</span> &#x2192; torch.Tensor<a class="reference external" href="https://github.com/nocaps-org/updown-baseline/blob/master/updown/models/updown_captioner.py#L136-L167"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#updown.models.updown_captioner.UpDownCaptioner._initialize_glove" title="Permalink to this definition">¶</a></dt>
+<dd><p>Initialize embeddings of all the tokens in a given
+<code class="xref py py-class docutils literal notranslate"><span class="pre">Vocabulary</span></code> by their GloVe vectors.</p>
+<p>It is recommended to train an <a class="reference internal" href="#updown.models.updown_captioner.UpDownCaptioner" title="updown.models.updown_captioner.UpDownCaptioner"><code class="xref py py-class docutils literal notranslate"><span class="pre">UpDownCaptioner</span></code></a> with
+frozen word embeddings when one wishes to perform Constrained Beam Search decoding during
+inference. This is because the constraint words may not appear in caption vocabulary (out of
+domain), and their embeddings will never be updated during training. Initializing with frozen
+GloVe embeddings is helpful, because they capture more meaningful semantics than randomly
+initialized embeddings.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>vocabulary: allennlp.data.vocabulary.Vocabulary</strong></dt><dd><p>The vocabulary containing tokens to be initialized.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt>torch.Tensor</dt><dd><p>GloVe Embeddings corresponding to tokens.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
 <dt id="updown.models.updown_captioner.UpDownCaptioner.forward">
-<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">self</em>, <em class="sig-param">image_features:torch.Tensor</em>, <em class="sig-param">caption_tokens:Union[torch.Tensor</em>, <em class="sig-param">NoneType]=None</em><span class="sig-paren">)</span> &#x2192; Dict[str, torch.Tensor]<a class="reference external" href="https://github.com/nocaps-org/updown-baseline/blob/master/updown/models/updown_captioner.py#L92-L186"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#updown.models.updown_captioner.UpDownCaptioner.forward" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">self</em>, <em class="sig-param">image_features:torch.Tensor</em>, <em class="sig-param">caption_tokens:Union[torch.Tensor</em>, <em class="sig-param">NoneType]=None</em>, <em class="sig-param">fsm:torch.Tensor=None</em>, <em class="sig-param">num_constraints:torch.Tensor=None</em><span class="sig-paren">)</span> &#x2192; Dict[str, torch.Tensor]<a class="reference external" href="https://github.com/nocaps-org/updown-baseline/blob/master/updown/models/updown_captioner.py#L169-L273"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#updown.models.updown_captioner.UpDownCaptioner.forward" title="Permalink to this definition">¶</a></dt>
 <dd><p>Given bottom-up image features, maximize the likelihood of paired captions during
 training. During evaluation, decode captions given image features using beam search.</p>
 <dl class="field-list simple">
@@ -98,6 +136,14 @@ with zeros up to <code class="docutils literal notranslate"><span class="pre">nu
 <dt><strong>caption_tokens: torch.Tensor, optional (default = None)</strong></dt><dd><p>A tensor of shape <code class="docutils literal notranslate"><span class="pre">(batch_size,</span> <span class="pre">max_caption_length)</span></code> of tokenized captions. This
 tensor does not contain <code class="docutils literal notranslate"><span class="pre">&#64;&#64;BOUNDARY&#64;&#64;</span></code> tokens yet. Captions are not provided
 during evaluation.</p>
+</dd>
+<dt><strong>fsm: torch.Tensor, optional (default = None)</strong></dt><dd><p>A tensor of shape <code class="docutils literal notranslate"><span class="pre">(batch_size,</span> <span class="pre">num_states,</span> <span class="pre">num_states,</span> <span class="pre">vocab_size)</span></code>: finite state
+machines per instance, represented as adjacency matrix. For a particular instance
+<code class="docutils literal notranslate"><span class="pre">[_,</span> <span class="pre">s1,</span> <span class="pre">s2,</span> <span class="pre">v]</span> <span class="pre">=</span> <span class="pre">1</span></code> shows a transition from state <code class="docutils literal notranslate"><span class="pre">s1</span></code> to <code class="docutils literal notranslate"><span class="pre">s2</span></code> on decoding
+<code class="docutils literal notranslate"><span class="pre">v</span></code> token (constraint). Would be <code class="docutils literal notranslate"><span class="pre">None</span></code> for regular beam search decoding.</p>
+</dd>
+<dt><strong>num_constraints: torch.Tensor, optional (default = None)</strong></dt><dd><p>A tensor of shape <code class="docutils literal notranslate"><span class="pre">(batch_size,</span> <span class="pre">)</span></code> containing the total number of given constraints
+for CBS. Would be <code class="docutils literal notranslate"><span class="pre">None</span></code> for regular beam search decoding.</p>
 </dd>
 </dl>
 </dd>
@@ -113,7 +159,7 @@ during evaluation.</p>
 
 <dl class="method">
 <dt id="updown.models.updown_captioner.UpDownCaptioner._decode_step">
-<code class="sig-name descname">_decode_step</code><span class="sig-paren">(</span><em class="sig-param">self, image_features:torch.Tensor, previous_predictions:torch.Tensor, states:Union[Dict[str, torch.Tensor], NoneType]=None</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, Dict[str, torch.Tensor]]<a class="reference external" href="https://github.com/nocaps-org/updown-baseline/blob/master/updown/models/updown_captioner.py#L188-L241"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#updown.models.updown_captioner.UpDownCaptioner._decode_step" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">_decode_step</code><span class="sig-paren">(</span><em class="sig-param">self, image_features:torch.Tensor, previous_predictions:torch.Tensor, states:Union[Dict[str, torch.Tensor], NoneType]=None</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, Dict[str, torch.Tensor]]<a class="reference external" href="https://github.com/nocaps-org/updown-baseline/blob/master/updown/models/updown_captioner.py#L275-L336"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#updown.models.updown_captioner.UpDownCaptioner._decode_step" title="Permalink to this definition">¶</a></dt>
 <dd><p>Given image features, tokens predicted at previous time-step and LSTM states of the
 <a class="reference internal" href="modules.updown_cell.html#updown.modules.updown_cell.UpDownCell" title="updown.modules.updown_cell.UpDownCell"><code class="xref py py-class docutils literal notranslate"><span class="pre">UpDownCell</span></code></a>, take a decoding step. This is also
 called by the beam search class.</p>
@@ -122,8 +168,11 @@ called by the beam search class.</p>
 <dd class="field-odd"><dl class="simple">
 <dt><strong>image_features: torch.Tensor</strong></dt><dd><p>A tensor of shape <code class="docutils literal notranslate"><span class="pre">(batch_size,</span> <span class="pre">num_boxes,</span> <span class="pre">image_feature_size)</span></code>.</p>
 </dd>
-<dt><strong>previous_predictions: torch.Tensor</strong></dt><dd><p>A tensor of shape <code class="docutils literal notranslate"><span class="pre">(batch_size,</span> <span class="pre">)</span></code> containing tokens predicted at previous
-time-step – one for each instances in a batch.</p>
+<dt><strong>previous_predictions: torch.Tensor</strong></dt><dd><p>A tensor of shape <code class="docutils literal notranslate"><span class="pre">(batch_size</span> <span class="pre">*</span> <span class="pre">net_beam_size,</span> <span class="pre">)</span></code> containing tokens predicted at
+previous time-step – one for each beam, for each instances in a batch.
+<code class="docutils literal notranslate"><span class="pre">net_beam_size</span></code> is 1 during teacher forcing (training), <code class="docutils literal notranslate"><span class="pre">beam_size</span></code> for regular
+<code class="xref py py-class docutils literal notranslate"><span class="pre">allennlp.nn.beam_search.BeamSearch</span></code> and <code class="docutils literal notranslate"><span class="pre">beam_size</span> <span class="pre">*</span> <span class="pre">num_states</span></code> for
+<code class="xref py py-class docutils literal notranslate"><span class="pre">updown.modules.cbs.ConstrainedBeamSearch</span></code></p>
 </dd>
 <dt><strong>states: [Dict[str, torch.Tensor], optional (default = None)</strong></dt><dd><p>LSTM states of the <a class="reference internal" href="modules.updown_cell.html#updown.modules.updown_cell.UpDownCell" title="updown.modules.updown_cell.UpDownCell"><code class="xref py py-class docutils literal notranslate"><span class="pre">UpDownCell</span></code></a>. These are
 initialized as zero tensors if not provided (at first time-step).</p>
@@ -135,7 +184,7 @@ initialized as zero tensors if not provided (at first time-step).</p>
 
 <dl class="method">
 <dt id="updown.models.updown_captioner.UpDownCaptioner._get_loss">
-<code class="sig-name descname">_get_loss</code><span class="sig-paren">(</span><em class="sig-param">self</em>, <em class="sig-param">logits:torch.Tensor</em>, <em class="sig-param">targets:torch.Tensor</em>, <em class="sig-param">target_mask:torch.Tensor</em><span class="sig-paren">)</span> &#x2192; torch.Tensor<a class="reference external" href="https://github.com/nocaps-org/updown-baseline/blob/master/updown/models/updown_captioner.py#L243-L277"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#updown.models.updown_captioner.UpDownCaptioner._get_loss" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">_get_loss</code><span class="sig-paren">(</span><em class="sig-param">self</em>, <em class="sig-param">logits:torch.Tensor</em>, <em class="sig-param">targets:torch.Tensor</em>, <em class="sig-param">target_mask:torch.Tensor</em><span class="sig-paren">)</span> &#x2192; torch.Tensor<a class="reference external" href="https://github.com/nocaps-org/updown-baseline/blob/master/updown/models/updown_captioner.py#L338-L371"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#updown.models.updown_captioner.UpDownCaptioner._get_loss" title="Permalink to this definition">¶</a></dt>
 <dd><p>Compute cross entropy loss of predicted caption (logits) w.r.t. target caption. The cross
 entropy loss of caption is cross entropy loss at each time-step, summed.</p>
 <dl class="field-list simple">
@@ -232,7 +281,7 @@ across time-steps.</p>
       &copy;2019, nocaps team.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 2.1.0</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 2.2.0</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
       |

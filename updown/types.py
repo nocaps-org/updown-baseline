@@ -25,12 +25,33 @@ TrainingBatch = TypedDict(
 EvaluationInstance = TypedDict(
     "EvaluationInstance", {"image_id": int, "image_features": np.ndarray}
 )
+EvaluationInstanceWithConstraints = TypedDict(
+    "EvaluationInstanceWithConstraints",
+    {
+        "image_id": int,
+        "image_features": np.ndarray,
+        "fsm": torch.ByteTensor,
+        "num_states": int,
+        "num_constraints": int,
+    },
+)
 
 # Type hint for objects returned by ``EvaluationDataset.collate_fn``.
 EvaluationBatch = TypedDict(
     "EvaluationBatch", {"image_id": torch.LongTensor, "image_features": torch.FloatTensor}
 )
-
-Prediction = TypedDict(
-    "Prediction", {"image_id": int, "caption": str},
+EvaluationBatchWithConstraints = TypedDict(
+    "EvaluationBatchWithConstraints",
+    {
+        "image_id": int,
+        "image_features": torch.FloatTensor,
+        "fsm": torch.ByteTensor,
+        "num_constraints": torch.LongTensor,
+    },
 )
+
+ConstraintBoxes = TypedDict(
+    "ConstraintBoxes", {"boxes": np.ndarray, "class_names": List[str], "score": np.ndarray}
+)
+
+Prediction = TypedDict("Prediction", {"image_id": int, "caption": str})

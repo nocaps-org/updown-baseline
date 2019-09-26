@@ -11,10 +11,11 @@ from tqdm import tqdm
 from allennlp.data import Vocabulary
 
 from updown.config import Config
-from updown.data.datasets import EvaluationDataset
+from updown.data.datasets import EvaluationDataset, EvaluationDatasetWithConstraints
 from updown.models import UpDownCaptioner
 from updown.types import Prediction
 from updown.utils.evalai import NocapsEvaluator
+from updown.utils.cbs import add_constraint_words_to_vocabulary
 
 
 parser = argparse.ArgumentParser(
@@ -83,28 +84,36 @@ if __name__ == "__main__":
 
     vocabulary = Vocabulary.from_files(_C.DATA.VOCABULARY)
 
-    eval_dataset = EvaluationDataset(
-        image_features_h5path=_C.DATA.TEST_FEATURES, in_memory=_A.in_memory
+    # Notice this condition is different than ``scripts/train.py``. Here, we may wish to do
+    # inference with a model trrained using frozen GloVe embeddings, without using CBS.
+    if _C.MODEL.EMBEDDING_SIZE == 300:
+        vocabulary = add_constraint_words_to_vocabulary(
+            vocabulary, wordforms_tsvpath=_C.DATA.CBS.WORDFORMS
+        )
+
+    EvaluationDatasetClass = (
+        EvaluationDatasetWithConstraints if _C.MODEL.USE_CBS else EvaluationDataset
     )
-    eval_dataloader = DataLoader(
-        eval_dataset,
-        batch_size=_C.OPTIM.BATCH_SIZE // _C.MODEL.BEAM_SIZE,
+    infer_dataset = EvaluationDatasetClass.from_config(
+        _C, vocabulary=vocabulary, in_memory=_A.in_memory
+    )
+
+    batch_size = _C.OPTIM.BATCH_SIZE // _C.MODEL.BEAM_SIZE
+    # Reduce batch size by total FSM states during CBS, because net beam size is larger.
+    if _C.MODEL.USE_CBS:
+        batch_size = batch_size // (2 ** _C.DATA.CBS.MAX_GIVEN_CONSTRAINTS)
+        batch_size = batch_size or 1
+
+    infer_dataloader = DataLoader(
+        infer_dataset,
+        batch_size=batch_size,
         shuffle=False,
         num_workers=_A.cpu_workers,
-        collate_fn=eval_dataset.collate_fn,
+        collate_fn=infer_dataset.collate_fn,
     )
 
-    model = UpDownCaptioner(
-        vocabulary,
-        image_feature_size=_C.MODEL.IMAGE_FEATURE_SIZE,
-        embedding_size=_C.MODEL.EMBEDDING_SIZE,
-        hidden_size=_C.MODEL.HIDDEN_SIZE,
-        attention_projection_size=_C.MODEL.ATTENTION_PROJECTION_SIZE,
-        beam_size=_C.MODEL.BEAM_SIZE,
-        max_caption_length=_C.DATA.MAX_CAPTION_LENGTH,
-    ).to(device)
-
-    # Load checkpoint to run inference.
+    # Load checkpoint. Don't complain about missing embeddings, they might be absent if frozen.
+    model = UpDownCaptioner.from_config(_C, vocabulary=vocabulary).to(device)
     model.load_state_dict(torch.load(_A.checkpoint_path)["model"])
 
     if len(_A.gpu_ids) > 1 and -1 not in _A.gpu_ids:
@@ -118,14 +127,19 @@ if __name__ == "__main__":
 
     predictions: List[Prediction] = []
 
-    for batch in tqdm(eval_dataloader):
+    for batch in tqdm(infer_dataloader):
 
         # keys: {"image_id", "image_features"}
         batch = {key: value.to(device) for key, value in batch.items()}
 
         with torch.no_grad():
             # shape: (batch_size, max_caption_length)
-            batch_predictions = model(batch["image_features"])["predictions"]
+            # Pass finite state machine and number of constraints if using CBS.
+            batch_predictions = model(
+                batch["image_features"],
+                fsm=batch.get("fsm", None),
+                num_constraints=batch.get("num_constraints", None),
+            )["predictions"]
 
         for i, image_id in enumerate(batch["image_id"]):
             instance_predictions = batch_predictions[i, :]
@@ -144,7 +158,7 @@ if __name__ == "__main__":
     json.dump(predictions, open(_A.output_path, "w"))
 
     if _A.evalai_submit:
-        evaluator = NocapsEvaluator("test" if "test" in _C.DATA.TEST_FEATURES else "val")
+        evaluator = NocapsEvaluator("val")
         evaluation_metrics = evaluator.evaluate(predictions)
 
         print(f"Evaluation metrics for checkpoint {_A.checkpoint_path}:")

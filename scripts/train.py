@@ -12,12 +12,17 @@ from tqdm import tqdm
 from allennlp.data import Vocabulary
 
 from updown.config import Config
-from updown.data.datasets import TrainingDataset, EvaluationDataset
+from updown.data.datasets import (
+    TrainingDataset,
+    EvaluationDataset,
+    EvaluationDatasetWithConstraints,
+)
 from updown.models import UpDownCaptioner
 from updown.types import Prediction
 from updown.utils.checkpointing import CheckpointManager
 from updown.utils.common import cycle
 from updown.utils.evalai import NocapsEvaluator
+from updown.utils.cbs import add_constraint_words_to_vocabulary
 
 
 parser = argparse.ArgumentParser("Train an UpDown Captioner on COCO train2017 split.")
@@ -106,13 +111,14 @@ if __name__ == "__main__":
 
     vocabulary = Vocabulary.from_files(_C.DATA.VOCABULARY)
 
-    train_dataset = TrainingDataset(
-        vocabulary,
-        image_features_h5path=_C.DATA.TRAIN_FEATURES,
-        captions_jsonpath=_C.DATA.TRAIN_CAPTIONS,
-        max_caption_length=_C.DATA.MAX_CAPTION_LENGTH,
-        in_memory=_A.in_memory,
-    )
+    # If we wish to use CBS during evaluation or inference, expand the vocabulary and add
+    # constraint words derived from Open Images classes.
+    if _C.MODEL.USE_CBS:
+        vocabulary = add_constraint_words_to_vocabulary(
+            vocabulary, wordforms_tsvpath=_C.DATA.CBS.WORDFORMS
+        )
+
+    train_dataset = TrainingDataset.from_config(_C, vocabulary=vocabulary, in_memory=_A.in_memory)
     train_dataloader = DataLoader(
         train_dataset,
         batch_size=_C.OPTIM.BATCH_SIZE,
@@ -123,28 +129,30 @@ if __name__ == "__main__":
     # Make dataloader cyclic for sampling batches perpetually.
     train_dataloader = cycle(train_dataloader, device)
 
-    val_dataset = EvaluationDataset(
-        image_features_h5path=_C.DATA.VAL_FEATURES, in_memory=_A.in_memory
+    EvaluationDatasetClass = (
+        EvaluationDatasetWithConstraints if _C.MODEL.USE_CBS else EvaluationDataset
     )
+    val_dataset = EvaluationDatasetClass.from_config(
+        _C, vocabulary=vocabulary, in_memory=_A.in_memory
+    )
+
     # Use a smaller batch during validation (accounting beam size) to fit in memory.
+    val_batch_size = _C.OPTIM.BATCH_SIZE // _C.MODEL.BEAM_SIZE
+
+    # Reduce batch size by total FSM states during CBS, because net beam size is larger.
+    if _C.MODEL.USE_CBS:
+        val_batch_size = val_batch_size // (2 ** _C.DATA.CBS.MAX_GIVEN_CONSTRAINTS)
+        val_batch_size = val_batch_size or 1
+
     val_dataloader = DataLoader(
         val_dataset,
-        batch_size=_C.OPTIM.BATCH_SIZE // _C.MODEL.BEAM_SIZE,
+        batch_size=val_batch_size,
         shuffle=False,
         num_workers=_A.cpu_workers,
         collate_fn=val_dataset.collate_fn,
     )
 
-    model = UpDownCaptioner(
-        vocabulary,
-        image_feature_size=_C.MODEL.IMAGE_FEATURE_SIZE,
-        embedding_size=_C.MODEL.EMBEDDING_SIZE,
-        hidden_size=_C.MODEL.HIDDEN_SIZE,
-        attention_projection_size=_C.MODEL.ATTENTION_PROJECTION_SIZE,
-        beam_size=_C.MODEL.BEAM_SIZE,
-        max_caption_length=_C.DATA.MAX_CAPTION_LENGTH,
-    ).to(device)
-
+    model = UpDownCaptioner.from_config(_C, vocabulary=vocabulary).to(device)
     if len(_A.gpu_ids) > 1 and -1 not in _A.gpu_ids:
         # Don't wrap to DataParallel if single GPU ID or -1 (CPU) is provided.
         model = nn.DataParallel(model, _A.gpu_ids)
@@ -182,6 +190,7 @@ if __name__ == "__main__":
             if key == "optimizer":
                 optimizer.load_state_dict(training_checkpoint[key])
             else:
+                # Don't complain about missing embeddings, they might be absent if frozen.
                 model.load_state_dict(training_checkpoint[key])
         start_iteration = int(_A.start_from_checkpoint.split("_")[-1][:-4]) + 1
     else:
@@ -223,7 +232,12 @@ if __name__ == "__main__":
 
                     with torch.no_grad():
                         # shape: (batch_size, max_caption_length)
-                        batch_predictions = model(batch["image_features"])["predictions"]
+                        # Pass finite state machine and number of constraints if using CBS.
+                        batch_predictions = model(
+                            batch["image_features"],
+                            fsm=batch.get("fsm", None),
+                            num_constraints=batch.get("num_constraints", None),
+                        )["predictions"]
 
                     for i, image_id in enumerate(batch["image_id"]):
                         instance_predictions = batch_predictions[i, :]

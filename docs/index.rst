@@ -2,7 +2,8 @@ UpDown Captioner Baseline for ``nocaps``
 ========================================
 
 Baseline model for `nocaps <https://nocaps.org>`_ benchmark, a re-implementation based on the
-`UpDown image captioning model trained on the COCO dataset (only) <https://github.com/peteanderson80/up-down-captioner>`_.
+`UpDown image captioning model trained on the COCO dataset (only) <https://github.com/peteanderson80/up-down-captioner>`_
+and with added support of decoding using [Constrained Beam Search][8].
 
 .. image:: _static/qualitative_examples.jpg
 
@@ -14,12 +15,12 @@ If you find this code useful, please consider citing:
 
 .. code-block:: text
 
-    @article{nocaps,
-        author  = {Harsh Agrawal* and Karan Desai* and Yufei Wang and Xinlei Chen and Rishabh Jain and
-                    Mark Johnson and Dhruv Batra and Devi Parikh and Stefan Lee and Peter Anderson},
-        title   = {{nocaps}: {n}ovel {o}bject {c}aptioning {a}t {s}cale},
-        journal = {arXiv preprint arXiv:1812.08658},
-        year    = {2018},
+    @inproceedings{nocaps2019,
+    author    = {Harsh Agrawal* and Karan Desai* and Yufei Wang and Xinlei Chen and Rishabh Jain and
+                Mark Johnson and Dhruv Batra and Devi Parikh and Stefan Lee and Peter Anderson},
+    title     = {{nocaps}: {n}ovel {o}bject {c}aptioning {a}t {s}cale},
+    booktitle = {International Conference on Computer Vision (ICCV)},
+    year      = {2019}
     }
 
 As well as the paper that proposed this model: 

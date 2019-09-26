@@ -7,7 +7,6 @@ from allennlp.data import Vocabulary
 
 from updown.config import Config
 from updown.data.readers import CocoCaptionsReader, ConstraintBoxesReader, ImageFeaturesReader
-from updown.modules.constraint import CBSConstraint
 from updown.types import (
     TrainingInstance,
     TrainingBatch,
@@ -60,7 +59,7 @@ class TrainingDataset(Dataset):
         self._max_caption_length = max_caption_length
 
     @classmethod
-    def from_config(cls, config: Config, **kwargs) -> TrainingDataset:
+    def from_config(cls, config: Config, **kwargs):
         r"""Instantiate this class directly from a :class:`~updown.config.Config`."""
         _C = config
         return cls(
@@ -140,7 +139,7 @@ class EvaluationDataset(Dataset):
         self._image_ids = sorted(list(self._image_features_reader._map.keys()))
 
     @classmethod
-    def from_config(cls, config: Config, **kwargs) -> EvaluationDataset:
+    def from_config(cls, config: Config, **kwargs):
         r"""Instantiate this class directly from a :class:`~updown.config.Config`."""
         _C = config
         return cls(image_features_h5path=_C.DATA.INFER_FEATURES, **kwargs)
@@ -236,7 +235,7 @@ class EvaluationDatasetWithConstraints(EvaluationDataset):
         self._fsm_builder = FiniteStateMachineBuilder(vocabulary, wordforms_tsvpath)
 
     @classmethod
-    def from_config(cls, config: Config, **kwargs) -> EvaluationDatasetWithConstraints:
+    def from_config(cls, config: Config, **kwargs):
         r"""Instantiate this class directly from a :class:`~updown.config.Config`."""
         _C = config
         return cls(

@@ -118,7 +118,7 @@ class UpDownCaptioner(nn.Module):
         self._min_constraints_to_satisfy = min_constraints_to_satisfy
 
     @classmethod
-    def from_config(cls, config: Config, **kwargs) -> UpDownCaptioner:
+    def from_config(cls, config: Config, **kwargs):
         r"""Instantiate this class directly from a :class:`~updown.config.Config`."""
         _C = config
         return cls(
@@ -290,10 +290,9 @@ class UpDownCaptioner(nn.Module):
         previous_predictions: torch.Tensor
             A tensor of shape ``(batch_size * net_beam_size, )`` containing tokens predicted at
             previous time-step -- one for each beam, for each instances in a batch.
-            ``net_beam_size`` is:
-              - 1 during teacher forcing (training)
-              - ``beam_size`` for regular :class:`allennlp.nn.beam_search.BeamSearch`
-              - ``beam_size * num_states`` for :class:`updown.modules.cbs.ConstrainedBeamSearch`
+            ``net_beam_size`` is 1 during teacher forcing (training), ``beam_size`` for regular
+            :class:`allennlp.nn.beam_search.BeamSearch` and ``beam_size * num_states`` for
+            :class:`updown.modules.cbs.ConstrainedBeamSearch`
 
         states: [Dict[str, torch.Tensor], optional (default = None)
             LSTM states of the :class:`~updown.modules.updown_cell.UpDownCell`. These are

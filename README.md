@@ -214,16 +214,80 @@ Pre-trained checkpoint with the provided config is available to download here:
 
 ### UpDown Captioner (without Constrained Beam Search):
 
-1. Checkpoint (`.pth` file): http://bit.ly/2ZctSMj
+Pre-trained checkpoint with the provided config is available to download here:
+
+1. Checkpoint (`.pth` file): https://bit.ly/2JwuHcP
 2. Predictions on `nocaps val`: https://bit.ly/2YKxxBA
 3. Predictions on `nocaps test`: https://bit.ly/2XBs0R4
 
-### UpDown Captioner (with Constrained Beam Search):
-
-(TODO)
-
+Note that while CBS is inference-only technique, it cannot be used on this checkpoint, because
+its word embeddings are 1000-dimensional and learned during training (unlike frozen GloVe 300d
+embeddings).
 
 <table>
+  <tr>
+    <th></th>
+    <th colspan="2">in-domain</th>
+    <th colspan="2">near-domain</th>
+    <th colspan="2">out-of-domain</th>
+    <th colspan="6">overall</th>
+  </tr>
+  <tr>
+    <th>split</th>
+    <th>CIDEr</th>
+    <th>SPICE</th>
+    <th>CIDEr</th>
+    <th>SPICE</th>
+    <th>CIDEr</th>
+    <th>SPICE</th>
+    <th>BLEU1</th>
+    <th>BLEU4</th>
+    <th>METEOR</th>
+    <th>ROUGE</th>
+    <th>CIDEr</th>
+    <th>SPICE</th>
+  </tr>
+  <tr>
+    <th>val</th>
+    <td>78.1</td>
+    <td>11.6</td>
+    <td>57.7</td>
+    <td>10.3</td>
+    <td>31.3</td>
+    <td>8.3</td>
+    <td>73.7</td>
+    <td>18.3</td>
+    <td>22.7</td>
+    <td>50.4</td>
+    <td>55.3</td>
+    <td>10.1</td>
+  </tr>
+  <tr>
+    <th>test</th>
+    <td>74.3</td>
+    <td>11.5</td>
+    <td>56.9</td>
+    <td>10.3</td>
+    <td>30.1</td>
+    <td>8.1</td>
+    <td>74.0</td>
+    <td>19.2</td>
+    <td>23.0</td>
+    <td>51.0</td>
+    <td>54.3</td>
+    <td>10.1</td>
+  </tr>
+</table>
+
+
+### UpDown Captioner (with Constrained Beam Search):
+
+<!-- 1. Checkpoint (`.pth` file): https://bit.ly/2ZctSMj -->
+
+COMING SOON!
+
+
+<!-- <table>
   <tr>
     <th></th>
     <th colspan="2">in-domain</th>
@@ -306,7 +370,7 @@ Pre-trained checkpoint with the provided config is available to download here:
     <td>X</td>
     <td>X</td>
   </tr>
-</table>
+</table> -->
 
 [1]: https://nocaps.org
 [2]: https://github.com/nocaps-org/updown-baseline/blob/master/updown/config.py

@@ -74,6 +74,10 @@ class UpDownCaptioner(nn.Module):
         self.hidden_size = hidden_size
         self.attention_projection_size = attention_projection_size
 
+        self._max_caption_length = max_caption_length
+        self._use_cbs = use_cbs
+        self._min_constraints_to_satisfy = min_constraints_to_satisfy
+
         # Short hand variable names for convenience
         _vocab_size = vocabulary.get_vocab_size()
         self._pad_index = vocabulary.get_token_index("@@UNKNOWN@@")
@@ -98,12 +102,19 @@ class UpDownCaptioner(nn.Module):
         self._updown_cell = UpDownCell(
             image_feature_size, embedding_size, hidden_size, attention_projection_size
         )
-        self._output_projection = nn.Linear(hidden_size, self.embedding_size)
-        self._output_layer = nn.Linear(self.embedding_size, _vocab_size, bias=False)
-        self._log_softmax = nn.LogSoftmax(dim=1)
 
-        # Tie the input and output word embeddings.
-        self._output_layer.weight = self._embedding_layer.weight
+        if self.embedding_size == 300:
+            self._output_projection = nn.Linear(hidden_size, self.embedding_size)
+            self._output_layer = nn.Linear(self.embedding_size, _vocab_size, bias=False)
+
+            # Tie the input and output word embeddings when using frozen GloVe embeddings.
+            self._output_layer.weight = self._embedding_layer.weight
+        else:
+            # Else don't tie them when learning embeddings during training.
+            self._output_projection = nn.Identity()  # type: ignore
+            self._output_layer = nn.Linear(hidden_size, _vocab_size)
+
+        self._log_softmax = nn.LogSoftmax(dim=1)
 
         # We use beam search to find the most likely caption during inference.
         BeamSearchClass = ConstrainedBeamSearch if use_cbs else BeamSearch
@@ -113,10 +124,6 @@ class UpDownCaptioner(nn.Module):
             beam_size=beam_size,
             per_node_beam_size=beam_size // 2,
         )
-        self._max_caption_length = max_caption_length
-
-        self._use_cbs = use_cbs
-        self._min_constraints_to_satisfy = min_constraints_to_satisfy
 
     @classmethod
     def from_config(cls, config: Config, **kwargs):

@@ -3,7 +3,8 @@ updown.utils
 
 .. toctree::
 
-    utils.cbs
     utils.checkpointing
     utils.common
+    utils.constraints
+    utils.decoding
     utils.evalai

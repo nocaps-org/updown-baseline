@@ -12,7 +12,7 @@ from allennlp.nn.util import add_sentence_boundary_token_ids, sequence_cross_ent
 
 from updown.config import Config
 from updown.modules import UpDownCell, ConstrainedBeamSearch
-from updown.utils.cbs import cbs_select_best_beam
+from updown.utils.decoding import select_best_beam, select_best_beam_with_constraints
 
 
 class UpDownCaptioner(nn.Module):
@@ -216,8 +216,7 @@ class UpDownCaptioner(nn.Module):
                 self._boundary_index,
                 self._boundary_index,
             )
-
-            _, max_caption_length = caption_tokens.size()
+            batch_size, max_caption_length = caption_tokens.size()
 
             # shape: (batch_size, max_caption_length)
             tokens_mask = caption_tokens != self._pad_index
@@ -248,7 +247,6 @@ class UpDownCaptioner(nn.Module):
             }
         else:
             num_decoding_steps = self._max_caption_length
-
             start_predictions = image_features.new_full((batch_size,), self._boundary_index).long()
 
             # Add image features as a default argument to match callable signature acceptable by
@@ -261,7 +259,7 @@ class UpDownCaptioner(nn.Module):
                 all_top_k_predictions, log_probabilities = self._beam_search.search(
                     start_predictions, states, beam_decode_step, fsm
                 )
-                best_predictions, _ = cbs_select_best_beam(
+                best_beam = select_best_beam_with_constraints(
                     all_top_k_predictions,
                     log_probabilities,
                     num_constraints,
@@ -269,12 +267,12 @@ class UpDownCaptioner(nn.Module):
                 )
             else:
                 all_top_k_predictions, log_probabilities = self._beam_search.search(
-                    start_predictions, states, beam_decode_step,
+                    start_predictions, states, beam_decode_step
                 )
-                # Pick the first beam as predictions (normal beam search)
-                best_predictions = all_top_k_predictions[:, 0, :]
+                best_beam = select_best_beam(all_top_k_predictions, log_probabilities)
 
-            output_dict = {"predictions": best_predictions}
+            # shape: (batch_size, num_decoding_steps)
+            output_dict = {"predictions": best_beam}
 
         return output_dict
 

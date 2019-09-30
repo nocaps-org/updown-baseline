@@ -35,10 +35,10 @@ class ConstrainedBeamSearch(object):
         start_predictions: torch.Tensor,
         start_state: StateType,
         step: StepFunctionType,
-        state_transition_matrix: torch.Tensor,
+        fsm: torch.Tensor,
     ):
         # shape: (batch_size, num_states, num_states, vocab_size)
-        batch_size, num_states, _, vocab_size = state_transition_matrix.size()
+        batch_size, num_states, _, vocab_size = fsm.size()
 
         predictions = []
         backpointers = []
@@ -53,7 +53,7 @@ class ConstrainedBeamSearch(object):
         ).expand(batch_size, num_states, num_classes)
 
         start_state_predictions = start_state_predictions.masked_fill(
-            1 - state_transition_matrix[:, self.init_state, :, :], -1e20
+            1 - fsm[:, self.init_state, :, :], -1e20
         )
 
         # (batch_size, num_states, beam_size)
@@ -74,9 +74,9 @@ class ConstrainedBeamSearch(object):
             for (key, value) in state.items()
         }
 
-        step_state_mask = state_transition_matrix.view(
-            batch_size, num_states, num_states, 1, num_classes
-        ).expand(batch_size, num_states, num_states, self.beam_size, num_classes)
+        step_state_mask = fsm.view(batch_size, num_states, num_states, 1, num_classes).expand(
+            batch_size, num_states, num_states, self.beam_size, num_classes
+        )
 
         for timestep in range(self.max_steps - 1):
             # shape: (batch_size * beam_size * num_states, )

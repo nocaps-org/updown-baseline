@@ -15,7 +15,7 @@ from updown.types import (
     EvaluationBatch,
     EvaluationBatchWithConstraints,
 )
-from updown.utils.cbs import ConstraintFilter, FiniteStateMachineBuilder
+from updown.utils.constraints import ConstraintFilter, FiniteStateMachineBuilder
 
 
 class TrainingDataset(Dataset):
@@ -180,7 +180,8 @@ class EvaluationDatasetWithConstraints(EvaluationDataset):
     Finite State Machines as represented as adjacency matrices (Tensors) with state transitions
     corresponding to specific constraint (word) occurrence while decoding). We return the number
     of constraints used to make an FSM because it is required while selecting which decoded beams
-    satisfied constraints. Refer :func:`~updown.utils.cbs.cbs_select_best_beam` for more details.
+    satisfied constraints. Refer :func:`~updown.utils.constraints.select_best_beam_with_constraints`
+    for more details.
 
     Notes
     -----

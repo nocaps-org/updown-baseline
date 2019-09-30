@@ -70,7 +70,7 @@ class ConstraintFilter(object):
         "luggage and bags": "luggage",
     }
 
-    def __init__(self, hierarchy_jsonpath: str, nms_threshold: float = 0.85, topk: int = 3):
+    def __init__(self, hierarchy_jsonpath: str, nms_threshold: float = 0.85, max_given_constraints: int = 3):
         def __read_hierarchy(node: anytree.AnyNode, parent: Optional[anytree.AnyNode] = None):
             # Cast an ``anytree.AnyNode`` (after first level of recursion) to dict.
             attributes = dict(node)
@@ -85,7 +85,7 @@ class ConstraintFilter(object):
         self._hierarchy = __read_hierarchy(json.load(open(hierarchy_jsonpath)))
 
         self._nms_threshold = nms_threshold
-        self._topk = topk
+        self._max_given_constraints = max_given_constraints
 
     def __call__(self, boxes: np.ndarray, class_names: List[str], scores: np.ndarray) -> List[str]:
 
@@ -109,7 +109,7 @@ class ConstraintFilter(object):
 
         # Retain top-k constraints based on prediction confidence score.
         class_names_and_scores = sorted(list(zip(class_names, scores)), key=lambda t: -t[1])
-        class_names_and_scores = class_names_and_scores[: self._topk]
+        class_names_and_scores = class_names_and_scores[: self._max_given_constraints]
 
         # Replace class name according to ``self.REPLACEMENTS``.
         class_names = [self.REPLACEMENTS.get(t[0], t[0]) for t in class_names_and_scores]
@@ -179,9 +179,21 @@ class ConstraintFilter(object):
 
 
 class FiniteStateMachineBuilder(object):
-    def __init__(self, vocabulary: Vocabulary, wordforms_tsvpath: str, max_num_states: int = 26):
+
+    # Supports up to three constraints, of up to three words each.
+    def __init__(
+        self,
+        vocabulary: Vocabulary,
+        wordforms_tsvpath: str,
+        max_given_constraints: int = 3,
+        max_words_per_constraint: int = 3,
+    ):
         self._vocabulary = vocabulary
-        self._max_num_states = max_num_states
+        self._max_given_constraints = max_given_constraints
+        self._max_words_per_constraint = max_words_per_constraint
+
+        self._num_main_states = 2 ** max_given_constraints
+        self._total_states = self._num_main_states * max_words_per_constraint
 
         self._wordforms: Dict[str, List[str]] = {}
         with open(wordforms_tsvpath, "r") as wordforms_file:
@@ -203,182 +215,63 @@ class FiniteStateMachineBuilder(object):
             fsm[from_state, to_state, word_index] = 1
             fsm[from_state, from_state, word_index] = 0
 
-            if reset_state is not None:
-                fsm[from_state, from_state, :] = 0
-                fsm[from_state, reset_state, :] = 1
+        if reset_state is not None:
+            fsm[from_state, from_state, :] = 0
+            fsm[from_state, reset_state, :] = 1
+            for word_index in word_indices:
                 fsm[from_state, reset_state, word_index] = 0
 
         return fsm
 
+    def add_nth_constraint(self, fsm, n, substate_idx: int, candidate: str):
+        # n starts as 1, 2, 3...
+
+        # Consider single word for now.
+        words = candidate.split()
+        connection_stride = 2 ** (n - 1)
+
+        from_state = 0
+        while from_state < self._num_main_states:
+            for _ in range(connection_stride):
+
+                word_from_state = from_state
+                for i, word in enumerate(words):
+                    wordforms = self._wordforms[word]
+                    wordform_indices = [self._vocabulary.get_token_index(w) for w in wordforms]
+
+                    if i != len(words) - 1:
+                        fsm = self._connect(
+                            fsm,
+                            word_from_state,
+                            substate_idx,
+                            wordform_indices,
+                            reset_state=from_state,
+                        )
+                        word_from_state = substate_idx
+                        substate_idx += 1
+                    else:
+                        fsm = self._connect(
+                            fsm,
+                            word_from_state,
+                            from_state + connection_stride,
+                            wordform_indices,
+                            reset_state=from_state,
+                        )
+                from_state += 1
+            from_state += connection_stride
+
+        return fsm, substate_idx
+
     def build(self, candidates: List[str]):
-        fsm = (
-            torch.eye(self._max_num_states, dtype=torch.uint8)
-            .unsqueeze(-1)
-            .repeat(1, 1, self._vocabulary.get_vocab_size())
-        )
-        last_state = 8
-        level_mapping = [{3: 5, 2: 6}, {1: 6, 3: 4}, {1: 5, 2: 4}]
+        fsm = torch.zeros(self._total_states, self._total_states, dtype=torch.uint8)
+
+        # Self loops for all words on main states.
+        fsm[range(self._num_main_states), range(self._num_main_states)] = 1
+
+        fsm = fsm.unsqueeze(-1).repeat(1, 1, self._vocabulary.get_vocab_size())
+
+        substate_idx = self._num_main_states
         for i, candidate in enumerate(candidates):
-            class_words = candidate.split()
+            fsm, substate_idx = self.add_nth_constraint(fsm, i + 1, substate_idx, candidate)
 
-            if len(class_words) == 1:
-                group_s1 = [
-                    self._vocabulary.get_token_index(wf) for wf in self._wordforms[class_words[0]]
-                ]
-
-                fsm = self._connect(fsm, 0, i + 1, group_s1)
-                fsm = self._connect(fsm, i + 4, 7, group_s1)
-
-                mapping = level_mapping[i]
-                for j in range(1, 4):
-                    if j in mapping:
-                        fsm = self._connect(fsm, j, mapping[j], group_s1)
-            elif len(class_words) == 2:
-                [word1, word2] = class_words
-                group_s1 = [self._vocabulary.get_token_index(wf) for wf in self._wordforms[word1]]
-                group_s2 = [self._vocabulary.get_token_index(wf) for wf in self._wordforms[word2]]
-
-                fsm = self._connect(fsm, 0, last_state, group_s1)
-                fsm = self._connect(fsm, last_state, i + 1, group_s2, reset_state=0)
-                last_state += 1
-
-                fsm = self._connect(fsm, i + 4, last_state, group_s1)
-                fsm = self._connect(fsm, last_state, 7, group_s2, reset_state=i + 4)
-                last_state += 1
-
-                mapping = level_mapping[i]
-                for j in range(1, 4):
-                    if j in mapping:
-                        fsm = self._connect(fsm, j, last_state, group_s1)
-                        fsm = self._connect(fsm, last_state, mapping[j], group_s2, reset_state=j)
-                        last_state += 1
-            elif len(class_words) == 3:
-                [word1, word2, word3] = class_words
-                group_s1 = [self._vocabulary.get_token_index(wf) for wf in self._wordforms[word1]]
-                group_s2 = [self._vocabulary.get_token_index(wf) for wf in self._wordforms[word2]]
-                group_s3 = [self._vocabulary.get_token_index(wf) for wf in self._wordforms[word3]]
-
-                fsm = self._connect(fsm, 0, last_state, group_s1)
-                fsm = self._connect(fsm, last_state, last_state + 1, group_s2, reset_state=0)
-                fsm = self._connect(fsm, last_state + 1, i + 1, group_s3, reset_state=0)
-                last_state += 2
-
-                fsm = self._connect(fsm, i + 4, last_state, group_s1)
-                fsm = self._connect(fsm, last_state, last_state + 1, group_s2, reset_state=i + 4)
-                fsm = self._connect(fsm, last_state + 1, 7, group_s3, reset_state=i + 4)
-                last_state += 2
-
-                mapping = level_mapping[i]
-                for j in range(1, 4):
-                    if j in mapping:
-                        fsm = self._connect(fsm, j, last_state, group_s1)
-                        fsm = self._connect(
-                            fsm, last_state, last_state + 1, group_s2, reset_state=j
-                        )
-                        fsm = self._connect(
-                            fsm, last_state + 1, mapping[j], group_s3, reset_state=j
-                        )
-                        last_state += 2
-
-        return fsm, last_state
-
-
-def cbs_select_best_beam(
-    beams: torch.Tensor,
-    beam_log_probabilities: torch.Tensor,
-    given_constraints: torch.Tensor,
-    min_constraints_to_satisfy: int = 2,
-):
-    r"""
-    Select the best beam decoded with the highest likelihood, and which also satisfies specified
-    minimum constraints out of a total number of given constraints.
-
-    .. note::
-
-        The implementation of this function goes hand-in-hand with the FSM building implementation
-        in :meth:`~updown.utils.cbs.FiniteStateMachineBuilder.build`, which specifies which state
-        satisfies which (basically, how many) constraints. If the "definition" of states change,
-        then selection of beams also changes accordingly.
-
-    Parameters
-    ----------
-    beams: torch.Tensor
-        A tensor of shape ``(batch_size, num_states, beam_size, max_decoding_steps)`` containing
-        decoded beams by :class:`~updown.modules.cbs.ConstrainedBeamSearch`. These beams are
-        sorted according to their likelihood (descending) in ``beam_size`` dimension.
-        already best beams in their state.
-    beam_log_probabilities: torch.Tensor
-        A tensor of shape ``(batch_size, num_states, beam_size)`` containing likelihood of decoded
-        beams.
-    given_constraints: torch.Tensor
-        A tensor of shape ``(batch_size, )`` containing number of constraints given at the start
-        of decoding.
-    min_constraints_to_satisfy: int, optional (default = 2)
-        Minimum number of constraints to satisfy. This is either 2, or ``given_constraints`` if
-        they are less than 2. Beams corresponding to states not satisfying at least these number
-        of constraints will be dropped. Only up to 3 supported.
-
-    Returns
-    -------
-    Tuple[torch.Tensor, torch.Tensor]
-        A tuple with two elements: decoded sequence (be am) which has highest likelihood among
-        beams satisfying constraints, and the likelihood value of chosen beam.
-    """
-    if min_constraints_to_satisfy > 3:
-        raise ValueError(
-            f"Cannot satisfy {min_constraints_to_satisfy} constraints. Only up to 3 supported."
-        )
-
-    batch_size, num_states, beam_size, max_decoding_steps = beams.size()
-
-    # Detach so the graph goes out of scope and avoid memory leak.
-    beams = beams.detach()
-
-    best_beams: List[torch.Tensor] = []
-    best_beam_log_probabilities: List[torch.Tensor] = []
-
-    for i in range(batch_size):
-        given_constraints_for_this = given_constraints[i].item()
-
-        min_constraints_to_satisfy_for_this = min(
-            min_constraints_to_satisfy, given_constraints_for_this
-        )
-
-        # For given constraints (a,b,c) and states S[0:8] -
-        if min_constraints_to_satisfy_for_this == 0:
-            # Just select state 0 (no constraints)
-            best_beams.append(beams[i, 0, 0, :])
-            best_beam_log_probabilities.append(beam_log_probabilities[i, 0, 0])
-
-        elif min_constraints_to_satisfy_for_this == 1:
-            # One constraint given, select state 1 (a).
-            best_beams.append(beams[i, 1, 0, :])
-            best_beam_log_probabilities.append(beam_log_probabilities[i, 1, 0])
-
-        elif min_constraints_to_satisfy_for_this >= 2:
-            # According to the FSM builder logic, states satisfying two or more constraints are
-            # S4 (b,c), S5 (a,c), S6 (a,b), S7 (a,b,c). "c" might be a dummy constraint.
-
-            selected_indices = torch.argmax(beam_log_probabilities[:, 4:8, 0], dim=1)
-            selected_indices += (
-                torch.arange(
-                    selected_indices.size(0),
-                    device=selected_indices.device,
-                    dtype=selected_indices.dtype,
-                )
-                * 4
-            )
-            top_beams = beams[:, 4:8, 0, :].contiguous().view(-1, max_decoding_steps)
-            top_beams = top_beams.index_select(0, selected_indices)
-
-            top_beam_logprobs = beam_log_probabilities[:, 4:8, 0].contiguous().view(-1)
-            top_beam_logprobs = top_beam_logprobs.index_select(0, selected_indices)
-
-            best_beams.append(top_beams[i])
-            best_beam_log_probabilities.append(top_beam_logprobs[i])
-
-    # shape: (batch_size, max_decoding_steps), (batch_size, )
-    return (
-        torch.stack(best_beams).long().to(beam_log_probabilities.device),
-        torch.stack(best_beam_log_probabilities).to(beam_log_probabilities.device),
-    )
+        return fsm, substate_idx

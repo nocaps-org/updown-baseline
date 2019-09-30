@@ -216,13 +216,12 @@ Pre-trained checkpoint with the provided config is available to download here:
 
 Pre-trained checkpoint with the provided config is available to download here:
 
-1. Checkpoint (`.pth` file): https://bit.ly/2JwuHcP
-2. Predictions on `nocaps val`: https://bit.ly/2YKxxBA
-3. Predictions on `nocaps test`: https://bit.ly/2XBs0R4
+- Checkpoint (`.pth` file): https://bit.ly/2JwuHcP
+- Predictions on `nocaps val`: https://bit.ly/2YKxxBA
 
-Note that while CBS is inference-only technique, it cannot be used on this checkpoint, because
-its word embeddings are 1000-dimensional and learned during training (unlike frozen GloVe 300d
-embeddings).
+Note that while CBS is inference-only technique, it cannot be used on this checkpoint. CBS
+requires models to have 300-dimensional froze GloVe embeddings, this checkpoint has 1000-
+dimensional word embeddings which are learned during training.
 
 <table>
   <tr>
@@ -260,21 +259,6 @@ embeddings).
     <td>22.7</td>
     <td>50.4</td>
     <td>55.3</td>
-    <td>10.1</td>
-  </tr>
-  <tr>
-    <th>test</th>
-    <td>74.3</td>
-    <td>11.5</td>
-    <td>56.9</td>
-    <td>10.3</td>
-    <td>30.1</td>
-    <td>8.1</td>
-    <td>74.0</td>
-    <td>19.2</td>
-    <td>23.0</td>
-    <td>51.0</td>
-    <td>54.3</td>
     <td>10.1</td>
   </tr>
 </table>

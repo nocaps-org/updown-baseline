@@ -96,7 +96,9 @@ class Config(object):
         selected based on the prediction confidence score of their corresponding bounding boxes.
 
     DATA.CBS.MAX_WORDS_PER_CONSTRAINT: 3
-        Maximum number of allowed words in a multi-word object class name.
+        Maximum number of allowed words in a multi-word object class name. Note that is is not
+        the number of word-forms for a particular constraint. For example: this parameter is 1 for
+        ``{"dog", "dogs"}`` constraint, 3 for ``{"wood burning stove"}``.
     __________
 
     MODEL:

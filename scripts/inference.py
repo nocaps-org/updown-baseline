@@ -15,7 +15,7 @@ from updown.data.datasets import EvaluationDataset, EvaluationDatasetWithConstra
 from updown.models import UpDownCaptioner
 from updown.types import Prediction
 from updown.utils.evalai import NocapsEvaluator
-from updown.utils.cbs import add_constraint_words_to_vocabulary
+from updown.utils.constraints import add_constraint_words_to_vocabulary
 
 
 parser = argparse.ArgumentParser(

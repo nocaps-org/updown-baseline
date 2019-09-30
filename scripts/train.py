@@ -22,7 +22,7 @@ from updown.types import Prediction
 from updown.utils.checkpointing import CheckpointManager
 from updown.utils.common import cycle
 from updown.utils.evalai import NocapsEvaluator
-from updown.utils.cbs import add_constraint_words_to_vocabulary
+from updown.utils.constraints import add_constraint_words_to_vocabulary
 
 
 parser = argparse.ArgumentParser("Train an UpDown Captioner on COCO train2017 split.")

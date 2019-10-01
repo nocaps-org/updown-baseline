@@ -25,9 +25,9 @@ class TrainingDataset(Dataset):
     :class:`~torch.utils.data.DataLoader`, it provides batches of image features and tokenized
     ground truth captions.
 
-    Notes
-    -----
-    Use :mod:`collate_fn` when wrapping with a :class:`~torch.utils.data.DataLoader`.
+    .. note::
+
+        Use :mod:`collate_fn` when wrapping with a :class:`~torch.utils.data.DataLoader`.
 
     Parameters
     ----------
@@ -121,9 +121,9 @@ class EvaluationDataset(Dataset):
     A PyTorch :class:`~torch.utils.data.Dataset` providing image features for inference. When
     wrapped with a :class:`~torch.utils.data.DataLoader`, it provides batches of image features.
 
-    Notes
-    -----
-    Use :mod:`collate_fn` when wrapping with a :class:`~torch.utils.data.DataLoader`.
+    .. note::
+
+        Use :mod:`collate_fn` when wrapping with a :class:`~torch.utils.data.DataLoader`.
 
     Parameters
     ----------
@@ -183,9 +183,9 @@ class EvaluationDatasetWithConstraints(EvaluationDataset):
     satisfied constraints. Refer :func:`~updown.utils.constraints.select_best_beam_with_constraints`
     for more details.
 
-    Notes
-    -----
-    Use :mod:`collate_fn` when wrapping with a :class:`~torch.utils.data.DataLoader`.
+    .. note::
+
+        Use :mod:`collate_fn` when wrapping with a :class:`~torch.utils.data.DataLoader`.
 
     Parameters
     ----------
@@ -263,7 +263,10 @@ class EvaluationDatasetWithConstraints(EvaluationDataset):
 
         return {"fsm": fsm, "num_states": nstates, "num_constraints": len(candidates), **item}
 
-    def collate_fn(self, batch_list: List[EvaluationInstance]) -> EvaluationBatchWithConstraints:
+    def collate_fn(
+        self, batch_list: List[EvaluationInstanceWithConstraints]
+    ) -> EvaluationBatchWithConstraints:
+
         batch = super().collate_fn(batch_list)
 
         max_state = max([s["num_states"] for s in batch_list])

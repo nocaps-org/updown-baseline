@@ -19,7 +19,7 @@
     <link href="https://fonts.googleapis.com/css?family=Ubuntu+Mono&display=swap" rel="stylesheet">
 
 
-    <title>updown.utils.common &#8212; updown 1.0.0 documentation</title>
+    <title>updown.utils.constraints &#8212; updown 1.0.0 documentation</title>
 
     <link rel="stylesheet" href="../_static/alabaster.css" type="text/css" />
     <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
@@ -30,8 +30,8 @@
     <script type="text/javascript" src="../_static/language_data.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="updown.utils.constraints" href="utils.constraints.html" />
-    <link rel="prev" title="updown.utils.checkpointing" href="utils.checkpointing.html" />
+    <link rel="next" title="updown.utils.decoding" href="utils.decoding.html" />
+    <link rel="prev" title="updown.utils.common" href="utils.common.html" />
    
   <link rel="stylesheet" href="../_static/custom.css" type="text/css" />
   
@@ -48,16 +48,34 @@
 
           <div class="body" role="main">
             
-  <div class="section" id="module-updown.utils.common">
-<span id="updown-utils-common"></span><h1>updown.utils.common<a class="headerlink" href="#module-updown.utils.common" title="Permalink to this headline">¶</a></h1>
+  <div class="section" id="module-updown.utils.constraints">
+<span id="updown-utils-constraints"></span><h1>updown.utils.constraints<a class="headerlink" href="#module-updown.utils.constraints" title="Permalink to this headline">¶</a></h1>
 <dl class="function">
-<dt id="updown.utils.common.cycle">
-<code class="sig-prename descclassname">updown.utils.common.</code><code class="sig-name descname">cycle</code><span class="sig-paren">(</span><em class="sig-param">dataloader:torch.utils.data.dataloader.DataLoader</em>, <em class="sig-param">device:torch.device</em><span class="sig-paren">)</span> &#x2192; Generator[Dict[str, torch.Tensor], NoneType, NoneType]<a class="reference external" href="https://github.com/nocaps-org/updown-baseline/blob/master/updown/utils/common.py#L7-L24"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#updown.utils.common.cycle" title="Permalink to this definition">¶</a></dt>
-<dd><p>A generator which yields a random batch from dataloader perpetually. This generator is
-used in the constructor.</p>
-<p>This is done so because we train for a fixed number of iterations, and do not have the
-notion of ‘epochs’. Using <code class="docutils literal notranslate"><span class="pre">itertools.cycle</span></code> with dataloader is harmful and may cause
-unexpeced memory leaks.</p>
+<dt id="updown.utils.constraints.add_constraint_words_to_vocabulary">
+<code class="sig-prename descclassname">updown.utils.constraints.</code><code class="sig-name descname">add_constraint_words_to_vocabulary</code><span class="sig-paren">(</span><em class="sig-param">vocabulary:allennlp.data.vocabulary.Vocabulary</em>, <em class="sig-param">wordforms_tsvpath:str</em>, <em class="sig-param">namespace:str='tokens'</em><span class="sig-paren">)</span> &#x2192; allennlp.data.vocabulary.Vocabulary<a class="reference external" href="https://github.com/nocaps-org/updown-baseline/blob/master/updown/utils/constraints.py#L13-L47"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#updown.utils.constraints.add_constraint_words_to_vocabulary" title="Permalink to this definition">¶</a></dt>
+<dd><p>Expand the <code class="xref py py-class docutils literal notranslate"><span class="pre">Vocabulary</span></code> with CBS constraint words. We do not
+need to worry about duplicate words in constraints and caption vocabulary. AllenNLP avoids
+duplicates automatically.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>vocabulary: allennlp.data.vocabulary.Vocabulary</strong></dt><dd><p>The vocabulary to be expanded with provided words.</p>
+</dd>
+<dt><strong>wordforms_tsvpath: str</strong></dt><dd><p>Path to a TSV file containing two fields: first is the name of Open Images object class
+and second field is a comma separated list of words (possibly singular and plural forms
+of the word etc.) which could be CBS constraints.</p>
+</dd>
+<dt><strong>namespace: str, optional (default=”tokens”)</strong></dt><dd><p>The namespace of <code class="xref py py-class docutils literal notranslate"><span class="pre">Vocabulary</span></code> to add these words.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt>allennlp.data.vocabulary.Vocabulary</dt><dd><p>The expanded <code class="xref py py-class docutils literal notranslate"><span class="pre">Vocabulary</span></code> with all the words added.</p>
+</dd>
+</dl>
+</dd>
+</dl>
 </dd></dl>
 
 </div>
@@ -91,8 +109,8 @@ unexpeced memory leaks.</p>
 <li class="toctree-l1"><a class="reference internal" href="modules.html">updown.modules</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="utils.html">updown.utils</a><ul class="current">
 <li class="toctree-l2"><a class="reference internal" href="utils.checkpointing.html">updown.utils.checkpointing</a></li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">updown.utils.common</a></li>
-<li class="toctree-l2"><a class="reference internal" href="utils.constraints.html">updown.utils.constraints</a></li>
+<li class="toctree-l2"><a class="reference internal" href="utils.common.html">updown.utils.common</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">updown.utils.constraints</a></li>
 <li class="toctree-l2"><a class="reference internal" href="utils.decoding.html">updown.utils.decoding</a></li>
 <li class="toctree-l2"><a class="reference internal" href="utils.evalai.html">updown.utils.evalai</a></li>
 </ul>
@@ -104,8 +122,8 @@ unexpeced memory leaks.</p>
 <ul>
   <li><a href="../index.html">Documentation overview</a><ul>
   <li><a href="utils.html">updown.utils</a><ul>
-      <li>Previous: <a href="utils.checkpointing.html" title="previous chapter">updown.utils.checkpointing</a></li>
-      <li>Next: <a href="utils.constraints.html" title="next chapter">updown.utils.constraints</a></li>
+      <li>Previous: <a href="utils.common.html" title="previous chapter">updown.utils.common</a></li>
+      <li>Next: <a href="utils.decoding.html" title="next chapter">updown.utils.decoding</a></li>
   </ul></li>
   </ul></li>
 </ul>
@@ -140,7 +158,7 @@ unexpeced memory leaks.</p>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
       |
-      <a href="../_sources/updown/utils.common.rst.txt"
+      <a href="../_sources/updown/utils.constraints.rst.txt"
           rel="nofollow">Page source</a>
     </div>
 

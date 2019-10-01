@@ -17,6 +17,7 @@
     </script>
 
     <link href="https://fonts.googleapis.com/css?family=Inconsolata&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css?family=Ubuntu+Mono&display=swap" rel="stylesheet">
 
 
     <title>Index &#8212; updown 1.0.0 documentation</title>
@@ -75,7 +76,7 @@
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="updown/models.updown_captioner.html#updown.models.updown_captioner.UpDownCaptioner._initialize_glove">_initialize_glove() (updown.models.updown_captioner.UpDownCaptioner static method)</a>
+      <li><a href="updown/models.updown_captioner.html#updown.models.updown_captioner.UpDownCaptioner._initialize_glove">_initialize_glove() (updown.models.updown_captioner.UpDownCaptioner method)</a>
 </li>
       <li><a href="updown/modules.attention.html#updown.modules.attention.BottomUpTopDownAttention._project_image_features">_project_image_features (updown.modules.attention.BottomUpTopDownAttention attribute)</a>
 </li>
@@ -87,7 +88,7 @@
 <h2 id="A">A</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="updown/utils.cbs.html#updown.utils.cbs.add_constraint_words_to_vocabulary">add_constraint_words_to_vocabulary() (in module updown.utils.cbs)</a>
+      <li><a href="updown/utils.constraints.html#updown.utils.constraints.add_constraint_words_to_vocabulary">add_constraint_words_to_vocabulary() (in module updown.utils.constraints)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -103,8 +104,6 @@
 <h2 id="C">C</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="updown/utils.cbs.html#updown.utils.cbs.cbs_select_best_beam">cbs_select_best_beam() (in module updown.utils.cbs)</a>
-</li>
       <li><a href="updown/utils.checkpointing.html#updown.utils.checkpointing.CheckpointManager">CheckpointManager (class in updown.utils.checkpointing)</a>
 </li>
       <li><a href="updown/data.readers.html#updown.data.readers.CocoCaptionsReader">CocoCaptionsReader (class in updown.data.readers)</a>
@@ -187,6 +186,12 @@
 <h2 id="S">S</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="updown/utils.decoding.html#updown.utils.decoding.select_best_beam">select_best_beam() (in module updown.utils.decoding)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="updown/utils.decoding.html#updown.utils.decoding.select_best_beam_with_constraints">select_best_beam_with_constraints() (in module updown.utils.decoding)</a>
+</li>
       <li><a href="updown/utils.checkpointing.html#updown.utils.checkpointing.CheckpointManager.step">step() (updown.utils.checkpointing.CheckpointManager method)</a>
 </li>
   </ul></td>
@@ -215,15 +220,17 @@
 </li>
       <li><a href="updown/modules.cbs.html#module-updown.modules.cbs">updown.modules.cbs (module)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="updown/modules.updown_cell.html#module-updown.modules.updown_cell">updown.modules.updown_cell (module)</a>
 </li>
-      <li><a href="updown/utils.cbs.html#module-updown.utils.cbs">updown.utils.cbs (module)</a>
-</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="updown/utils.checkpointing.html#module-updown.utils.checkpointing">updown.utils.checkpointing (module)</a>
 </li>
       <li><a href="updown/utils.common.html#module-updown.utils.common">updown.utils.common (module)</a>
+</li>
+      <li><a href="updown/utils.constraints.html#module-updown.utils.constraints">updown.utils.constraints (module)</a>
+</li>
+      <li><a href="updown/utils.decoding.html#module-updown.utils.decoding">updown.utils.decoding (module)</a>
 </li>
       <li><a href="updown/utils.evalai.html#module-updown.utils.evalai">updown.utils.evalai (module)</a>
 </li>
@@ -252,6 +259,11 @@
 
 
 <h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="setup_dependencies.html">How to setup this codebase?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="training.html">How to train your captioner?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="evaluation_inference.html">How to evaluate or do inference?</a></li>
+</ul>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="updown/config.html">updown.config</a></li>
 <li class="toctree-l1"><a class="reference internal" href="updown/data.html">updown.data</a></li>

@@ -16,6 +16,7 @@
     </script>
 
     <link href="https://fonts.googleapis.com/css?family=Inconsolata&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css?family=Ubuntu+Mono&display=swap" rel="stylesheet">
 
 
     <title>UpDown Captioner Baseline for nocaps &#8212; updown 1.0.0 documentation</title>
@@ -29,7 +30,7 @@
     <script type="text/javascript" src="_static/language_data.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="updown.config" href="updown/config.html" />
+    <link rel="next" title="How to setup this codebase?" href="setup_dependencies.html" />
    
   <link rel="stylesheet" href="_static/custom.css" type="text/css" />
   
@@ -50,7 +51,7 @@
 <h1>UpDown Captioner Baseline for <code class="docutils literal notranslate"><span class="pre">nocaps</span></code><a class="headerlink" href="#updown-captioner-baseline-for-nocaps" title="Permalink to this headline">¶</a></h1>
 <p>Baseline model for <a class="reference external" href="https://nocaps.org">nocaps</a> benchmark, a re-implementation based on the
 <a class="reference external" href="https://github.com/peteanderson80/up-down-captioner">UpDown image captioning model trained on the COCO dataset (only)</a>
-and with added support of decoding using [Constrained Beam Search][8].</p>
+and with added support of decoding using <a class="reference external" href="https://arxiv.org/abs/1612.00576">Constrained Beam Search</a>..</p>
 <img alt="_images/qualitative_examples.jpg" src="_images/qualitative_examples.jpg" />
 <p>Get the source at <a class="reference external" href="https://www.github.com/nocaps-org/updown-baseline">&#64;nocaps-org/updown-baseline</a>.</p>
 <p>If you find this code useful, please consider citing:</p>
@@ -74,6 +75,16 @@ year      = {2019}
 </pre></div>
 </div>
 </div>
+<div class="section" id="user-guide">
+<h1>User Guide<a class="headerlink" href="#user-guide" title="Permalink to this headline">¶</a></h1>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="setup_dependencies.html">How to setup this codebase?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="training.html">How to train your captioner?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="evaluation_inference.html">How to evaluate or do inference?</a></li>
+</ul>
+</div>
+</div>
 <div class="section" id="api-reference">
 <h1>API Reference<a class="headerlink" href="#api-reference" title="Permalink to this headline">¶</a></h1>
 <div class="toctree-wrapper compound">
@@ -95,9 +106,10 @@ year      = {2019}
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="updown/utils.html">updown.utils</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="updown/utils.cbs.html">updown.utils.cbs</a></li>
 <li class="toctree-l2"><a class="reference internal" href="updown/utils.checkpointing.html">updown.utils.checkpointing</a></li>
 <li class="toctree-l2"><a class="reference internal" href="updown/utils.common.html">updown.utils.common</a></li>
+<li class="toctree-l2"><a class="reference internal" href="updown/utils.constraints.html">updown.utils.constraints</a></li>
+<li class="toctree-l2"><a class="reference internal" href="updown/utils.decoding.html">updown.utils.decoding</a></li>
 <li class="toctree-l2"><a class="reference internal" href="updown/utils.evalai.html">updown.utils.evalai</a></li>
 </ul>
 </li>
@@ -123,6 +135,11 @@ year      = {2019}
 
 <h3>Navigation</h3>
 <ul>
+<li class="toctree-l1"><a class="reference internal" href="setup_dependencies.html">How to setup this codebase?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="training.html">How to train your captioner?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="evaluation_inference.html">How to evaluate or do inference?</a></li>
+</ul>
+<ul>
 <li class="toctree-l1"><a class="reference internal" href="updown/config.html">updown.config</a></li>
 <li class="toctree-l1"><a class="reference internal" href="updown/data.html">updown.data</a></li>
 <li class="toctree-l1"><a class="reference internal" href="updown/models.html">updown.models</a></li>
@@ -134,7 +151,7 @@ year      = {2019}
 <h3>Related Topics</h3>
 <ul>
   <li><a href="#">Documentation overview</a><ul>
-      <li>Next: <a href="updown/config.html" title="next chapter">updown.config</a></li>
+      <li>Next: <a href="setup_dependencies.html" title="next chapter">How to setup this codebase?</a></li>
   </ul></li>
 </ul>
 </div>

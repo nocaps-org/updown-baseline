@@ -1,0 +1,261 @@
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+  <head>
+    <meta charset="utf-8" />
+
+    <!-- Global site tag (gtag.js) - Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=UA-120523111-2"></script>
+    <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'UA-120523111-2');
+    </script>
+
+    <link href="https://fonts.googleapis.com/css?family=Inconsolata&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css?family=Ubuntu+Mono&display=swap" rel="stylesheet">
+
+
+    <title>How to setup this codebase? &#8212; updown 1.0.0 documentation</title>
+
+    <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="_static/language_data.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="How to train your captioner?" href="training.html" />
+    <link rel="prev" title="UpDown Captioner Baseline for nocaps" href="index.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="how-to-setup-this-codebase">
+<h1>How to setup this codebase?<a class="headerlink" href="#how-to-setup-this-codebase" title="Permalink to this headline">¶</a></h1>
+<p>This codebase requires Python 3.6 or higher. The recommended way to set up this
+codebase up through Anaconda/Miniconda.</p>
+<div class="section" id="install-dependencies">
+<h2>Install Dependencies<a class="headerlink" href="#install-dependencies" title="Permalink to this headline">¶</a></h2>
+<ol class="arabic">
+<li><p>Install Anaconda or Miniconda distribution based on Python3+ from their
+<a class="reference external" href="https://conda.io/docs/user-guide/install/download.html">downloads site</a>.</p></li>
+<li><p>Clone the repository.</p>
+<blockquote>
+<div><div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>git clone https://www.github.com/nocaps-org/updown-baseline
+<span class="nb">cd</span> updown-baseline
+</pre></div>
+</div>
+</div></blockquote>
+</li>
+<li><p>Create a conda environment and install all the dependencies, and this
+codebase as a package in development version.</p>
+<blockquote>
+<div><div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>conda create -n updown <span class="nv">python</span><span class="o">=</span><span class="m">3</span>.6
+conda activate updown
+pip install -r requirements.txt
+python setup.py develop
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>If <code class="docutils literal notranslate"><span class="pre">evalai</span></code> package install fails, install <code class="docutils literal notranslate"><span class="pre">libxml2-dev</span></code> and
+<code class="docutils literal notranslate"><span class="pre">libxstl1-dev</span></code> via <code class="docutils literal notranslate"><span class="pre">apt</span></code>.</p>
+</div>
+</div></blockquote>
+</li>
+</ol>
+<p>Now you can <code class="docutils literal notranslate"><span class="pre">import</span> <span class="pre">updown</span></code> from anywhere in your filesystem as long as you have this conda
+environment activated.</p>
+</div>
+<div class="section" id="download-image-features">
+<h2>Download Image Features<a class="headerlink" href="#download-image-features" title="Permalink to this headline">¶</a></h2>
+<p>We provide pre-extracted bottom-up features for COCO and <code class="docutils literal notranslate"><span class="pre">nocaps</span></code> splits. These are extracted
+using a Faster-RCNN detector pretrained on Visual Genome, made available by
+<a class="reference external" href="https://arxiv.org/abs/1707.07998">Anderson et al. 2017</a>. We call this <code class="docutils literal notranslate"><span class="pre">VG</span> <span class="pre">Detector</span></code>.
+We extract features from 100 region proposals for an image, and select them based on a confidence
+threshold of 0.2 - we finally get 10-100 features per image (adaptive).</p>
+<p>Download (or symlink) the image features under <code class="docutils literal notranslate"><span class="pre">$PROJECT_ROOT/data</span></code> directory:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><a class="reference external" href="https://www.dropbox.com/s/n0lj4oandy71sl8/coco_train2017_vg_detector_features_adaptive.h5">coco_train2017_vg_detector_features_adaptive.h5</a></p></li>
+<li><p><a class="reference external" href="https://www.dropbox.com/s/tzldnj7xwxxcnp6/coco_val2017_vg_detector_features_adaptive.h5">coco_val2017_vg_detector_features_adaptive.h5</a></p></li>
+<li><p><a class="reference external" href="https://www.dropbox.com/s/6qqebcybfebrloe/nocaps_val_vg_detector_features_adaptive.h5">nocaps_val_vg_detector_features_adaptive.h5</a></p></li>
+<li><p><a class="reference external" href="https://www.dropbox.com/s/tl3sdfdgpbafs2c/nocaps_test_vg_detector_features_adaptive.h5">nocaps_test_vg_detector_features_adaptive.h5</a></p></li>
+</ul>
+</div></blockquote>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p>Our <a class="reference external" href="https://github.com/nocaps-org/image-feature-extractors">image-feature-extractors</a> repo for more info on <code class="docutils literal notranslate"><span class="pre">VG</span> <span class="pre">Detector</span></code>, and how these
+features are extracted from it.</p>
+</div>
+</div>
+<div class="section" id="download-annotation-files">
+<h2>Download Annotation Files<a class="headerlink" href="#download-annotation-files" title="Permalink to this headline">¶</a></h2>
+<p>Download COCO Captions and <cite>nocaps</cite> val/test image info and arrange in a directory structure as
+follows:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$PROJECT_ROOT/data
+    |-- coco
+    |   +-- annotations
+    |       |-- captions_train2017.json
+    |       +-- captions_val2017.json
+    +-- nocaps
+        +-- annotations
+            |-- nocaps_val_image_info.json
+            +-- nocaps_test_image_info.json
+</pre></div>
+</div>
+<ul class="simple">
+<li><p>COCO Captions: <a class="reference external" href="http://images.cocodataset.org/annotations/annotations_trainval2017.zip">http://images.cocodataset.org/annotations/annotations_trainval2017.zip</a></p></li>
+<li><p>nocaps val image info: <a class="reference external" href="https://s3.amazonaws.com/nocaps/nocaps_val_image_info.json">https://s3.amazonaws.com/nocaps/nocaps_val_image_info.json</a></p></li>
+<li><p>nocaps test image info: <a class="reference external" href="https://s3.amazonaws.com/nocaps/nocaps_test_image_info.json">https://s3.amazonaws.com/nocaps/nocaps_test_image_info.json</a></p></li>
+</ul>
+</div>
+<div class="section" id="optional-download-files-for-constrained-beam-search">
+<h2>[Optional] Download files for Constrained Beam Search<a class="headerlink" href="#optional-download-files-for-constrained-beam-search" title="Permalink to this headline">¶</a></h2>
+<ol class="arabic simple">
+<li><p>If you wish to decode using <a class="reference external" href="https://arxiv.org/abs/1612.00576">Constrained Beam Search</a>,
+download pre-extracted detections from a detector trained using Open Images (we call it
+<code class="docutils literal notranslate"><span class="pre">OI</span> <span class="pre">Detector`)</span> <span class="pre">into</span> <span class="pre">``$PROJECT_ROOT/data</span></code>.</p></li>
+</ol>
+<blockquote>
+<div><ul class="simple">
+<li><p><a class="reference external" href="https://www.dropbox.com/s/ro6c4acnf5snnr5/nocaps_val_oi_detector_boxes.json">nocaps_val_oi_detector_boxes.json</a> (in COCO bounding box annotations format)</p></li>
+<li><p><a class="reference external" href="https://www.dropbox.com/s/s4a7u0u1he3uh4j/nocaps_test_oi_detector_boxes.json">nocaps_test_oi_detector_boxes.json</a> (in COCO bounding box annotations format)</p></li>
+</ul>
+</div></blockquote>
+<ol class="arabic simple" start="2">
+<li><p>Download Open Images meta data files into <code class="docutils literal notranslate"><span class="pre">$PROJECT_ROOT/data/cbs</span></code>:</p></li>
+</ol>
+<blockquote>
+<div><ul class="simple">
+<li><p><a class="reference external" href="https://www.dropbox.com/s/0i6sxy400tb0scp/class_hierarchy.json">class_hierarchy.json</a> : A hierarchy of object classes
+<a class="reference external" href="https://storage.googleapis.com/openimages/2018_04/bbox_labels_600_hierarchy_visualizer/circle.html">declared by Open Images</a>.
+Our file is in a format which is more human-readable.</p></li>
+<li><p><a class="reference external" href="https://www.dropbox.com/s/6a36qw7ryi4dygb/constraint_wordforms.tsv">constraint_wordforms.tsv</a> : wordforms of all words which could be CBS constraints.
+This is how one could allow either of singular-plural words to satisfy a constraint (or even
+close synonym words).</p></li>
+</ul>
+</div></blockquote>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p>Our <a class="reference external" href="https://github.com/nocaps-org/image-feature-extractors">image-feature-extractors</a> repo for more info on <code class="docutils literal notranslate"><span class="pre">OI</span> <span class="pre">Detector</span></code>, and how these
+bounding box detections are extracted from it.</p>
+</div>
+</div>
+<div class="section" id="build-vocabulary">
+<h2>Build Vocabulary<a class="headerlink" href="#build-vocabulary" title="Permalink to this headline">¶</a></h2>
+<p>Build caption vocabulary using COCO train2017 captions.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">python</span> <span class="n">scripts</span><span class="o">/</span><span class="n">build_vocabulary</span><span class="o">.</span><span class="n">py</span> <span class="o">-</span><span class="n">c</span> <span class="n">data</span><span class="o">/</span><span class="n">coco</span><span class="o">/</span><span class="n">captions_train2017</span><span class="o">.</span><span class="n">json</span> <span class="o">-</span><span class="n">o</span> <span class="n">data</span><span class="o">/</span><span class="n">vocabulary</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="evaluation-server">
+<h2>Evaluation Server<a class="headerlink" href="#evaluation-server" title="Permalink to this headline">¶</a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">nocaps</span></code> val and test splits are held privately behind EvalAI. To evaluate on <code class="docutils literal notranslate"><span class="pre">nocaps</span></code>,
+create an account on <a class="reference external" href="http://evalai.cloudcv.org">EvalAI</a> and get the auth token from
+<a class="reference external" href="http://evalai.cloudcv.org/web/profile">profile details</a>. Set the token through EvalAI CLI:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">evalai</span> <span class="n">set_token</span> <span class="o">&lt;</span><span class="n">your_token_here</span><span class="o">&gt;</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="you-are-all-set-to-use-this-codebase">
+<h2>You are all set to use this codebase!<a class="headerlink" href="#you-are-all-set-to-use-this-codebase" title="Permalink to this headline">¶</a></h2>
+</div>
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="index.html">updown</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">How to setup this codebase?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="training.html">How to train your captioner?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="evaluation_inference.html">How to evaluate or do inference?</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="updown/config.html">updown.config</a></li>
+<li class="toctree-l1"><a class="reference internal" href="updown/data.html">updown.data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="updown/models.html">updown.models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="updown/modules.html">updown.modules</a></li>
+<li class="toctree-l1"><a class="reference internal" href="updown/utils.html">updown.utils</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+      <li>Previous: <a href="index.html" title="previous chapter">UpDown Captioner Baseline for <code class="docutils literal notranslate"><span class="pre">nocaps</span></code></a></li>
+      <li>Next: <a href="training.html" title="next chapter">How to train your captioner?</a></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2019, nocaps team.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 2.2.0</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="_sources/setup_dependencies.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

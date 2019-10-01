@@ -3,7 +3,7 @@ UpDown Captioner Baseline for ``nocaps``
 
 Baseline model for `nocaps <https://nocaps.org>`_ benchmark, a re-implementation based on the
 `UpDown image captioning model trained on the COCO dataset (only) <https://github.com/peteanderson80/up-down-captioner>`_
-and with added support of decoding using [Constrained Beam Search][8].
+and with added support of decoding using `Constrained Beam Search <https://arxiv.org/abs/1612.00576>`_..
 
 .. image:: _static/qualitative_examples.jpg
 
@@ -23,7 +23,7 @@ If you find this code useful, please consider citing:
     year      = {2019}
     }
 
-As well as the paper that proposed this model: 
+As well as the paper that proposed this model:
 
 .. code-block:: text
 
@@ -34,6 +34,17 @@ As well as the paper that proposed this model:
         booktitle = {CVPR},
         year      = {2018}
     }
+
+
+User Guide
+==========
+
+.. toctree::
+    :maxdepth: 1
+
+    setup_dependencies
+    training
+    evaluation_inference
 
 
 API Reference

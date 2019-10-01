@@ -16,6 +16,7 @@
     </script>
 
     <link href="https://fonts.googleapis.com/css?family=Inconsolata&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css?family=Ubuntu+Mono&display=swap" rel="stylesheet">
 
 
     <title>updown.config &#8212; updown 1.0.0 documentation</title>
@@ -30,7 +31,7 @@
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
     <link rel="next" title="updown.data" href="data.html" />
-    <link rel="prev" title="UpDown Captioner Baseline for nocaps" href="../index.html" />
+    <link rel="prev" title="How to evaluate or do inference?" href="../evaluation_inference.html" />
    
   <link rel="stylesheet" href="../_static/custom.css" type="text/css" />
   
@@ -52,7 +53,7 @@
 <p>This module provides package-wide configuration management.</p>
 <dl class="class">
 <dt id="updown.config.Config">
-<em class="property">class </em><code class="sig-prename descclassname">updown.config.</code><code class="sig-name descname">Config</code><span class="sig-paren">(</span><em class="sig-param">config_yaml: str</em>, <em class="sig-param">config_override: List[Any] = []</em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/nocaps-org/updown-baseline/blob/master/updown/config.py#L7-L246"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#updown.config.Config" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">updown.config.</code><code class="sig-name descname">Config</code><span class="sig-paren">(</span><em class="sig-param">config_yaml: str</em>, <em class="sig-param">config_override: List[Any] = []</em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/nocaps-org/updown-baseline/blob/master/updown/config.py#L7-L248"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#updown.config.Config" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
 <p>A collection of all the required configuration parameters. This class is a nested dict-like
 structure, with nested keys accessible as attributes. It contains sensible default values for
@@ -113,7 +114,7 @@ be truncated to maximum length.</p>
 <dt><strong>DATA.CBS:</strong></dt><dd><p>Collection of required data paths and configuration parameters for Constrained Beam Search
 decoding.</p>
 </dd>
-<dt><strong>DATA.CBS.INFER_BOXES: “data/cbs/nocaps_val_oi_detector_boxes.json”</strong></dt><dd><p>Path to a JSON file containing detected bounding boxes (in COCO format) from nocaps
+<dt><strong>DATA.CBS.INFER_BOXES: “data/nocaps_val_oi_detector_boxes.json”</strong></dt><dd><p>Path to a JSON file containing detected bounding boxes (in COCO format) from nocaps
 val/test images.</p>
 </dd>
 <dt><strong>DATA.CBS.CLASS_HIERARCHY: “data/cbs/class_hierarchy.json”</strong></dt><dd><p>Path to a JSON file containing a hierarchy of Open Images object classes as
@@ -129,7 +130,9 @@ for two boxes with IoU higher than this threshold, “dog” suppresses “anima
 <dt><strong>DATA.CBS.MAX_GIVEN_CONSTRAINTS: 3</strong></dt><dd><p>Maximum number of constraints which can be specified for CBS decoding. Constraints are
 selected based on the prediction confidence score of their corresponding bounding boxes.</p>
 </dd>
-<dt><strong>DATA.CBS.MAX_WORDS_PER_CONSTRAINT: 3</strong></dt><dd><p>Maximum number of allowed words in a multi-word object class name.</p>
+<dt><strong>DATA.CBS.MAX_WORDS_PER_CONSTRAINT: 3</strong></dt><dd><p>Maximum number of allowed words in a multi-word object class name. Note that is is not
+the number of word-forms for a particular constraint. For example: this parameter is 1 for
+<code class="docutils literal notranslate"><span class="pre">{&quot;dog&quot;,</span> <span class="pre">&quot;dogs&quot;}</span></code> constraint, 3 for <code class="docutils literal notranslate"><span class="pre">{&quot;wood</span> <span class="pre">burning</span> <span class="pre">stove&quot;}</span></code>.</p>
 </dd>
 <dt><strong>__________</strong></dt><dd></dd>
 <dt><strong>MODEL:</strong></dt><dd><p>Parameters controlling the model architecture of UpDown Captioner.</p>
@@ -169,7 +172,7 @@ attention weights.</p>
 </dl>
 <dl class="method">
 <dt id="updown.config.Config.dump">
-<code class="sig-name descname">dump</code><span class="sig-paren">(</span><em class="sig-param">self</em>, <em class="sig-param">file_path:str</em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/nocaps-org/updown-baseline/blob/master/updown/config.py#L204-L213"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#updown.config.Config.dump" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">dump</code><span class="sig-paren">(</span><em class="sig-param">self</em>, <em class="sig-param">file_path:str</em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/nocaps-org/updown-baseline/blob/master/updown/config.py#L206-L215"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#updown.config.Config.dump" title="Permalink to this definition">¶</a></dt>
 <dd><p>Save config at the specified file path.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -183,7 +186,7 @@ attention weights.</p>
 
 <dl class="method">
 <dt id="updown.config.Config._validate">
-<code class="sig-name descname">_validate</code><span class="sig-paren">(</span><em class="sig-param">self</em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/nocaps-org/updown-baseline/blob/master/updown/config.py#L215-L232"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#updown.config.Config._validate" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">_validate</code><span class="sig-paren">(</span><em class="sig-param">self</em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/nocaps-org/updown-baseline/blob/master/updown/config.py#L217-L234"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#updown.config.Config._validate" title="Permalink to this definition">¶</a></dt>
 <dd><p>Perform all validations to raise error if there are parameters with conflicting values.</p>
 </dd></dl>
 
@@ -208,6 +211,11 @@ attention weights.</p>
 
 
 <h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../setup_dependencies.html">How to setup this codebase?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../training.html">How to train your captioner?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../evaluation_inference.html">How to evaluate or do inference?</a></li>
+</ul>
 <ul class="current">
 <li class="toctree-l1 current"><a class="current reference internal" href="#">updown.config</a></li>
 <li class="toctree-l1"><a class="reference internal" href="data.html">updown.data</a></li>
@@ -220,7 +228,7 @@ attention weights.</p>
 <h3>Related Topics</h3>
 <ul>
   <li><a href="../index.html">Documentation overview</a><ul>
-      <li>Previous: <a href="../index.html" title="previous chapter">UpDown Captioner Baseline for <code class="docutils literal notranslate"><span class="pre">nocaps</span></code></a></li>
+      <li>Previous: <a href="../evaluation_inference.html" title="previous chapter">How to evaluate or do inference?</a></li>
       <li>Next: <a href="data.html" title="next chapter">updown.data</a></li>
   </ul></li>
 </ul>

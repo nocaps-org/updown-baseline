@@ -1,0 +1,197 @@
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+  <head>
+    <meta charset="utf-8" />
+
+    <!-- Global site tag (gtag.js) - Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=UA-120523111-2"></script>
+    <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'UA-120523111-2');
+    </script>
+
+    <link href="https://fonts.googleapis.com/css?family=Inconsolata&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css?family=Ubuntu+Mono&display=swap" rel="stylesheet">
+
+
+    <title>How to train your captioner? &#8212; updown 1.0.0 documentation</title>
+
+    <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="_static/language_data.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="How to evaluate or do inference?" href="evaluation_inference.html" />
+    <link rel="prev" title="How to setup this codebase?" href="setup_dependencies.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="how-to-train-your-captioner">
+<h1>How to train your captioner?<a class="headerlink" href="#how-to-train-your-captioner" title="Permalink to this headline">¶</a></h1>
+<p>We manage experiments through config files – a config file should contain arguments which are
+specific to a particular experiment, such as those defining model architecture, or optimization
+hyperparameters. Other arguments such as GPU ids, or number of CPU workers should be declared in
+the script and passed in as argparse-style arguments.</p>
+<div class="section" id="updown-captioner-without-cbs">
+<h2>UpDown Captioner (without CBS)<a class="headerlink" href="#updown-captioner-without-cbs" title="Permalink to this headline">¶</a></h2>
+<p>Train a baseline UpDown Captioner with all the default hyperparameters as follows. This would
+reproduce results of the first row in <code class="docutils literal notranslate"><span class="pre">nocaps</span> <span class="pre">val</span></code> table from our paper.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">python</span> <span class="n">scripts</span><span class="o">/</span><span class="n">train</span><span class="o">.</span><span class="n">py</span> \
+    <span class="o">--</span><span class="n">config</span> <span class="n">configs</span><span class="o">/</span><span class="n">updown_nocaps_val</span><span class="o">.</span><span class="n">yaml</span> \
+    <span class="o">--</span><span class="n">gpu</span><span class="o">-</span><span class="n">ids</span> <span class="mi">0</span> <span class="o">--</span><span class="n">serialization</span><span class="o">-</span><span class="nb">dir</span> <span class="n">checkpoints</span><span class="o">/</span><span class="n">updown</span>
+</pre></div>
+</div>
+<p>Refer <a class="reference internal" href="updown/config.html#updown.config.Config" title="updown.config.Config"><code class="xref py py-class docutils literal notranslate"><span class="pre">updown.config.Config</span></code></a> for default hyperparameters.
+For other configurations, write your own config file, and/or a set of key-value pairs through
+<code class="docutils literal notranslate"><span class="pre">--config-override</span></code> argument. For example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">python</span> <span class="n">scripts</span><span class="o">/</span><span class="n">train</span><span class="o">.</span><span class="n">py</span> \
+    <span class="o">--</span><span class="n">config</span> <span class="n">configs</span><span class="o">/</span><span class="n">updown_nocaps_val</span><span class="o">.</span><span class="n">yaml</span> \
+    <span class="o">--</span><span class="n">config</span><span class="o">-</span><span class="n">override</span> <span class="n">OPTIM</span><span class="o">.</span><span class="n">BATCH_SIZE</span> <span class="mi">250</span> \
+    <span class="o">--</span><span class="n">gpu</span><span class="o">-</span><span class="n">ids</span> <span class="mi">0</span> <span class="o">--</span><span class="n">serialization</span><span class="o">-</span><span class="nb">dir</span> <span class="n">checkpoints</span><span class="o">/</span><span class="n">updown</span><span class="o">-</span><span class="n">baseline</span>
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This configuration uses randomly initialized word embeddings, which are trained during
+training. It is not possible to run Constrained Beam Search on this checkpoint.</p>
+</div>
+</div>
+<div class="section" id="updown-captioner-with-cbs">
+<h2>UpDown Captioner (with CBS)<a class="headerlink" href="#updown-captioner-with-cbs" title="Permalink to this headline">¶</a></h2>
+<p>Train a baseline UpDown Captioner with cnstrained Beam Search decoding during evaluation. This
+would reproduce results of the second row in <code class="docutils literal notranslate"><span class="pre">nocaps</span> <span class="pre">val</span></code> table from our paper.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">python</span> <span class="n">scripts</span><span class="o">/</span><span class="n">train</span><span class="o">.</span><span class="n">py</span> \
+    <span class="o">--</span><span class="n">config</span> <span class="n">configs</span><span class="o">/</span><span class="n">updown_plus_cbs_nocaps_val</span><span class="o">.</span><span class="n">yaml</span> \
+    <span class="o">--</span><span class="n">gpu</span><span class="o">-</span><span class="n">ids</span> <span class="mi">0</span> <span class="o">--</span><span class="n">serialization</span><span class="o">-</span><span class="nb">dir</span> <span class="n">checkpoints</span><span class="o">/</span><span class="n">updown_plus_cbs</span>
+</pre></div>
+</div>
+<p>The only difference with original config is the word embedding size, this one is set to the
+GloVe dimension (300), and frozen during training. A checkpoint trained using this config can
+be run without Constrained Beam Search decoding.</p>
+</div>
+<div class="section" id="additional-details">
+<h2>Additional Details<a class="headerlink" href="#additional-details" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="multi-gpu-training">
+<h3>Multi-GPU Training<a class="headerlink" href="#multi-gpu-training" title="Permalink to this headline">¶</a></h3>
+<p>Multi-GPU training is fully supported, pass GPU IDs as <code class="docutils literal notranslate"><span class="pre">--gpu-ids</span> <span class="pre">0</span> <span class="pre">1</span> <span class="pre">2</span> <span class="pre">3</span></code>.</p>
+</div>
+<div class="section" id="saving-model-checkpoints">
+<h3>Saving Model Checkpoints<a class="headerlink" href="#saving-model-checkpoints" title="Permalink to this headline">¶</a></h3>
+<p>This script serializes model checkpoints every few iterations, and keeps track of best performing
+checkpoint based on overall CIDEr score.</p>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="updown/utils.checkpointing.html#updown.utils.checkpointing.CheckpointManager" title="updown.utils.checkpointing.CheckpointManager"><code class="xref py py-class docutils literal notranslate"><span class="pre">updown.utils.checkpointing.CheckpointManager</span></code></a> for more detail on how checkpointing is
+managed. A copy of configuration file used for a particular experiment is also saved under
+<code class="docutils literal notranslate"><span class="pre">--serialization-dir</span></code>.</p>
+</div>
+</div>
+<div class="section" id="logging">
+<h3>Logging<a class="headerlink" href="#logging" title="Permalink to this headline">¶</a></h3>
+<p>This script logs loss curves and metrics to Tensorboard, log files are at <code class="docutils literal notranslate"><span class="pre">--serialization-dir</span></code>.
+Execute <code class="docutils literal notranslate"><span class="pre">tensorboard</span> <span class="pre">--logdir</span> <span class="pre">/path/to/serialization_dir</span> <span class="pre">--port</span> <span class="pre">8008</span></code> and visit
+<code class="docutils literal notranslate"><span class="pre">localhost:8008</span></code> in the browser.</p>
+</div>
+</div>
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="index.html">updown</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="setup_dependencies.html">How to setup this codebase?</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">How to train your captioner?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="evaluation_inference.html">How to evaluate or do inference?</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="updown/config.html">updown.config</a></li>
+<li class="toctree-l1"><a class="reference internal" href="updown/data.html">updown.data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="updown/models.html">updown.models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="updown/modules.html">updown.modules</a></li>
+<li class="toctree-l1"><a class="reference internal" href="updown/utils.html">updown.utils</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+      <li>Previous: <a href="setup_dependencies.html" title="previous chapter">How to setup this codebase?</a></li>
+      <li>Next: <a href="evaluation_inference.html" title="next chapter">How to evaluate or do inference?</a></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2019, nocaps team.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 2.2.0</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="_sources/training.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

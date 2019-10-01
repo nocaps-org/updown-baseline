@@ -19,7 +19,7 @@
     <link href="https://fonts.googleapis.com/css?family=Ubuntu+Mono&display=swap" rel="stylesheet">
 
 
-    <title>Python Module Index &#8212; updown 1.0.0 documentation</title>
+    <title>How to evaluate or do inference? &#8212; updown 1.0.0 documentation</title>
 
     <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
@@ -30,14 +30,13 @@
     <script type="text/javascript" src="_static/language_data.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-
+    <link rel="next" title="updown.config" href="updown/config.html" />
+    <link rel="prev" title="How to train your captioner?" href="training.html" />
    
   <link rel="stylesheet" href="_static/custom.css" type="text/css" />
   
   
   <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
-
-
 
   </head><body>
   
@@ -49,84 +48,26 @@
 
           <div class="body" role="main">
             
-
-   <h1>Python Module Index</h1>
-
-   <div class="modindex-jumpbox">
-   <a href="#cap-u"><strong>u</strong></a>
-   </div>
-
-   <table class="indextable modindextable">
-     <tr class="pcap"><td></td><td>&#160;</td><td></td></tr>
-     <tr class="cap" id="cap-u"><td></td><td>
-       <strong>u</strong></td><td></td></tr>
-     <tr>
-       <td><img src="_static/minus.png" class="toggler"
-              id="toggle-1" style="display: none" alt="-" /></td>
-       <td>
-       <code class="xref">updown</code></td><td>
-       <em></em></td></tr>
-     <tr class="cg-1">
-       <td></td>
-       <td>&#160;&#160;&#160;
-       <a href="updown/config.html#module-updown.config"><code class="xref">updown.config</code></a></td><td>
-       <em></em></td></tr>
-     <tr class="cg-1">
-       <td></td>
-       <td>&#160;&#160;&#160;
-       <a href="updown/data.datasets.html#module-updown.data.datasets"><code class="xref">updown.data.datasets</code></a></td><td>
-       <em></em></td></tr>
-     <tr class="cg-1">
-       <td></td>
-       <td>&#160;&#160;&#160;
-       <a href="updown/data.readers.html#module-updown.data.readers"><code class="xref">updown.data.readers</code></a></td><td>
-       <em></em></td></tr>
-     <tr class="cg-1">
-       <td></td>
-       <td>&#160;&#160;&#160;
-       <a href="updown/models.updown_captioner.html#module-updown.models.updown_captioner"><code class="xref">updown.models.updown_captioner</code></a></td><td>
-       <em></em></td></tr>
-     <tr class="cg-1">
-       <td></td>
-       <td>&#160;&#160;&#160;
-       <a href="updown/modules.attention.html#module-updown.modules.attention"><code class="xref">updown.modules.attention</code></a></td><td>
-       <em></em></td></tr>
-     <tr class="cg-1">
-       <td></td>
-       <td>&#160;&#160;&#160;
-       <a href="updown/modules.cbs.html#module-updown.modules.cbs"><code class="xref">updown.modules.cbs</code></a></td><td>
-       <em></em></td></tr>
-     <tr class="cg-1">
-       <td></td>
-       <td>&#160;&#160;&#160;
-       <a href="updown/modules.updown_cell.html#module-updown.modules.updown_cell"><code class="xref">updown.modules.updown_cell</code></a></td><td>
-       <em></em></td></tr>
-     <tr class="cg-1">
-       <td></td>
-       <td>&#160;&#160;&#160;
-       <a href="updown/utils.checkpointing.html#module-updown.utils.checkpointing"><code class="xref">updown.utils.checkpointing</code></a></td><td>
-       <em></em></td></tr>
-     <tr class="cg-1">
-       <td></td>
-       <td>&#160;&#160;&#160;
-       <a href="updown/utils.common.html#module-updown.utils.common"><code class="xref">updown.utils.common</code></a></td><td>
-       <em></em></td></tr>
-     <tr class="cg-1">
-       <td></td>
-       <td>&#160;&#160;&#160;
-       <a href="updown/utils.constraints.html#module-updown.utils.constraints"><code class="xref">updown.utils.constraints</code></a></td><td>
-       <em></em></td></tr>
-     <tr class="cg-1">
-       <td></td>
-       <td>&#160;&#160;&#160;
-       <a href="updown/utils.decoding.html#module-updown.utils.decoding"><code class="xref">updown.utils.decoding</code></a></td><td>
-       <em></em></td></tr>
-     <tr class="cg-1">
-       <td></td>
-       <td>&#160;&#160;&#160;
-       <a href="updown/utils.evalai.html#module-updown.utils.evalai"><code class="xref">updown.utils.evalai</code></a></td><td>
-       <em></em></td></tr>
-   </table>
+  <div class="section" id="how-to-evaluate-or-do-inference">
+<h1>How to evaluate or do inference?<a class="headerlink" href="#how-to-evaluate-or-do-inference" title="Permalink to this headline">¶</a></h1>
+<p>Generate predictions for <code class="docutils literal notranslate"><span class="pre">nocaps</span></code> val or <code class="docutils literal notranslate"><span class="pre">nocaps</span></code> test using a pretrained checkpoint as
+follows.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">python</span> <span class="n">scripts</span><span class="o">/</span><span class="n">inference</span><span class="o">.</span><span class="n">py</span> \
+    <span class="o">--</span><span class="n">config</span> <span class="o">/</span><span class="n">path</span><span class="o">/</span><span class="n">to</span><span class="o">/</span><span class="n">config</span><span class="o">.</span><span class="n">yaml</span> \
+    <span class="o">--</span><span class="n">checkpoint</span><span class="o">-</span><span class="n">path</span> <span class="o">/</span><span class="n">path</span><span class="o">/</span><span class="n">to</span><span class="o">/</span><span class="n">checkpoint</span><span class="o">.</span><span class="n">pth</span> \
+    <span class="o">--</span><span class="n">output</span><span class="o">-</span><span class="n">path</span> <span class="o">/</span><span class="n">path</span><span class="o">/</span><span class="n">to</span><span class="o">/</span><span class="n">save</span><span class="o">/</span><span class="n">predictions</span><span class="o">.</span><span class="n">json</span> \
+    <span class="o">--</span><span class="n">gpu</span><span class="o">-</span><span class="n">ids</span> <span class="mi">0</span>
+</pre></div>
+</div>
+<p>Add <code class="docutils literal notranslate"><span class="pre">--evalai-submit</span></code> flag if you wish to submit the predictions directly to EvalAI and get
+results.</p>
+<div class="section" id="using-constrained-beam-search">
+<h2>Using Constrained Beam Search<a class="headerlink" href="#using-constrained-beam-search" title="Permalink to this headline">¶</a></h2>
+<p>To use Constrained Beam Search during inference, add <cite>–config-override MODEL.USE_CBS True</cite>
+or specify it in the config file. This is only valid for checkpoints trained with frozen
+GloVe embeddings (<code class="docutils literal notranslate"><span class="pre">MODEL.EMBEDDING_SIZE</span> <span class="pre">300</span></code>).</p>
+</div>
+</div>
 
 
           </div>
@@ -145,10 +86,10 @@
 
 
 <h3>Navigation</h3>
-<ul>
+<ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="setup_dependencies.html">How to setup this codebase?</a></li>
 <li class="toctree-l1"><a class="reference internal" href="training.html">How to train your captioner?</a></li>
-<li class="toctree-l1"><a class="reference internal" href="evaluation_inference.html">How to evaluate or do inference?</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">How to evaluate or do inference?</a></li>
 </ul>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="updown/config.html">updown.config</a></li>
@@ -162,6 +103,8 @@
 <h3>Related Topics</h3>
 <ul>
   <li><a href="index.html">Documentation overview</a><ul>
+      <li>Previous: <a href="training.html" title="previous chapter">How to train your captioner?</a></li>
+      <li>Next: <a href="updown/config.html" title="next chapter">updown.config</a></li>
   </ul></li>
 </ul>
 </div>
@@ -194,6 +137,9 @@
       Powered by <a href="http://sphinx-doc.org/">Sphinx 2.2.0</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
+      |
+      <a href="_sources/evaluation_inference.rst.txt"
+          rel="nofollow">Page source</a>
     </div>
 
     

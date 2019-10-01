@@ -58,6 +58,10 @@
 for training <a class="reference internal" href="models.updown_captioner.html#updown.models.updown_captioner.UpDownCaptioner" title="updown.models.updown_captioner.UpDownCaptioner"><code class="xref py py-class docutils literal notranslate"><span class="pre">UpDownCaptioner</span></code></a>. When wrapped with a
 <a class="reference external" href="https://pytorch.org/docs/stable/data.html#torch.utils.data.DataLoader" title="(in PyTorch vmaster (1.2.0a0+8554416 ))"><code class="xref py py-class docutils literal notranslate"><span class="pre">DataLoader</span></code></a>, it provides batches of image features and tokenized
 ground truth captions.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Use <code class="xref py py-mod docutils literal notranslate"><span class="pre">collate_fn</span></code> when wrapping with a <a class="reference external" href="https://pytorch.org/docs/stable/data.html#torch.utils.data.DataLoader" title="(in PyTorch vmaster (1.2.0a0+8554416 ))"><code class="xref py py-class docutils literal notranslate"><span class="pre">DataLoader</span></code></a>.</p>
+</div>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><dl class="simple">
@@ -75,8 +79,6 @@ be truncated to maximum length.</p>
 </dl>
 </dd>
 </dl>
-<p class="rubric">Notes</p>
-<p>Use <code class="xref py py-mod docutils literal notranslate"><span class="pre">collate_fn</span></code> when wrapping with a <a class="reference external" href="https://pytorch.org/docs/stable/data.html#torch.utils.data.DataLoader" title="(in PyTorch vmaster (1.2.0a0+8554416 ))"><code class="xref py py-class docutils literal notranslate"><span class="pre">DataLoader</span></code></a>.</p>
 <dl class="method">
 <dt id="updown.data.datasets.TrainingDataset.from_config">
 <em class="property">classmethod </em><code class="sig-name descname">from_config</code><span class="sig-paren">(</span><em class="sig-param">config:updown.config.Config</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/nocaps-org/updown-baseline/blob/master/updown/data/datasets.py#L61-L72"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#updown.data.datasets.TrainingDataset.from_config" title="Permalink to this definition">¶</a></dt>
@@ -91,6 +93,10 @@ be truncated to maximum length.</p>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.utils.data.dataset.Dataset</span></code></p>
 <p>A PyTorch <a class="reference external" href="https://pytorch.org/docs/stable/data.html#torch.utils.data.Dataset" title="(in PyTorch vmaster (1.2.0a0+8554416 ))"><code class="xref py py-class docutils literal notranslate"><span class="pre">Dataset</span></code></a> providing image features for inference. When
 wrapped with a <a class="reference external" href="https://pytorch.org/docs/stable/data.html#torch.utils.data.DataLoader" title="(in PyTorch vmaster (1.2.0a0+8554416 ))"><code class="xref py py-class docutils literal notranslate"><span class="pre">DataLoader</span></code></a>, it provides batches of image features.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Use <code class="xref py py-mod docutils literal notranslate"><span class="pre">collate_fn</span></code> when wrapping with a <a class="reference external" href="https://pytorch.org/docs/stable/data.html#torch.utils.data.DataLoader" title="(in PyTorch vmaster (1.2.0a0+8554416 ))"><code class="xref py py-class docutils literal notranslate"><span class="pre">DataLoader</span></code></a>.</p>
+</div>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><dl class="simple">
@@ -103,8 +109,6 @@ wrapped with a <a class="reference external" href="https://pytorch.org/docs/stab
 </dl>
 </dd>
 </dl>
-<p class="rubric">Notes</p>
-<p>Use <code class="xref py py-mod docutils literal notranslate"><span class="pre">collate_fn</span></code> when wrapping with a <a class="reference external" href="https://pytorch.org/docs/stable/data.html#torch.utils.data.DataLoader" title="(in PyTorch vmaster (1.2.0a0+8554416 ))"><code class="xref py py-class docutils literal notranslate"><span class="pre">DataLoader</span></code></a>.</p>
 <dl class="method">
 <dt id="updown.data.datasets.EvaluationDataset.from_config">
 <em class="property">classmethod </em><code class="sig-name descname">from_config</code><span class="sig-paren">(</span><em class="sig-param">config:updown.config.Config</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/nocaps-org/updown-baseline/blob/master/updown/data/datasets.py#L142-L146"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#updown.data.datasets.EvaluationDataset.from_config" title="Permalink to this definition">¶</a></dt>
@@ -115,7 +119,7 @@ wrapped with a <a class="reference external" href="https://pytorch.org/docs/stab
 
 <dl class="class">
 <dt id="updown.data.datasets.EvaluationDatasetWithConstraints">
-<em class="property">class </em><code class="sig-prename descclassname">updown.data.datasets.</code><code class="sig-name descname">EvaluationDatasetWithConstraints</code><span class="sig-paren">(</span><em class="sig-param">vocabulary: allennlp.data.vocabulary.Vocabulary</em>, <em class="sig-param">image_features_h5path: str</em>, <em class="sig-param">boxes_jsonpath: str</em>, <em class="sig-param">wordforms_tsvpath: str</em>, <em class="sig-param">hierarchy_jsonpath: str</em>, <em class="sig-param">nms_threshold: float = 0.85</em>, <em class="sig-param">max_given_constraints: int = 3</em>, <em class="sig-param">in_memory: bool = True</em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/nocaps-org/updown-baseline/blob/master/updown/data/datasets.py#L171-L274"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#updown.data.datasets.EvaluationDatasetWithConstraints" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">updown.data.datasets.</code><code class="sig-name descname">EvaluationDatasetWithConstraints</code><span class="sig-paren">(</span><em class="sig-param">vocabulary: allennlp.data.vocabulary.Vocabulary</em>, <em class="sig-param">image_features_h5path: str</em>, <em class="sig-param">boxes_jsonpath: str</em>, <em class="sig-param">wordforms_tsvpath: str</em>, <em class="sig-param">hierarchy_jsonpath: str</em>, <em class="sig-param">nms_threshold: float = 0.85</em>, <em class="sig-param">max_given_constraints: int = 3</em>, <em class="sig-param">in_memory: bool = True</em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/nocaps-org/updown-baseline/blob/master/updown/data/datasets.py#L171-L277"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#updown.data.datasets.EvaluationDatasetWithConstraints" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#updown.data.datasets.EvaluationDataset" title="updown.data.datasets.EvaluationDataset"><code class="xref py py-class docutils literal notranslate"><span class="pre">updown.data.datasets.EvaluationDataset</span></code></a></p>
 <p>A PyTorch <a class="reference external" href="https://pytorch.org/docs/stable/data.html#torch.utils.data.Dataset" title="(in PyTorch vmaster (1.2.0a0+8554416 ))"><code class="xref py py-class docutils literal notranslate"><span class="pre">Dataset</span></code></a> providing image features for inference, along
 with constraints for <a class="reference internal" href="modules.cbs.html#updown.modules.cbs.ConstrainedBeamSearch" title="updown.modules.cbs.ConstrainedBeamSearch"><code class="xref py py-class docutils literal notranslate"><span class="pre">ConstrainedBeamSearch</span></code></a>. When wrapped with a
@@ -126,6 +130,10 @@ corresponding to specific constraint (word) occurrence while decoding). We retur
 of constraints used to make an FSM because it is required while selecting which decoded beams
 satisfied constraints. Refer <code class="xref py py-func docutils literal notranslate"><span class="pre">select_best_beam_with_constraints()</span></code>
 for more details.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Use <code class="xref py py-mod docutils literal notranslate"><span class="pre">collate_fn</span></code> when wrapping with a <a class="reference external" href="https://pytorch.org/docs/stable/data.html#torch.utils.data.DataLoader" title="(in PyTorch vmaster (1.2.0a0+8554416 ))"><code class="xref py py-class docutils literal notranslate"><span class="pre">DataLoader</span></code></a>.</p>
+</div>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><dl class="simple">
@@ -154,8 +162,6 @@ selected based on the prediction confidence score of their corresponding boundin
 </dl>
 </dd>
 </dl>
-<p class="rubric">Notes</p>
-<p>Use <code class="xref py py-mod docutils literal notranslate"><span class="pre">collate_fn</span></code> when wrapping with a <a class="reference external" href="https://pytorch.org/docs/stable/data.html#torch.utils.data.DataLoader" title="(in PyTorch vmaster (1.2.0a0+8554416 ))"><code class="xref py py-class docutils literal notranslate"><span class="pre">DataLoader</span></code></a>.</p>
 <dl class="method">
 <dt id="updown.data.datasets.EvaluationDatasetWithConstraints.from_config">
 <em class="property">classmethod </em><code class="sig-name descname">from_config</code><span class="sig-paren">(</span><em class="sig-param">config:updown.config.Config</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/nocaps-org/updown-baseline/blob/master/updown/data/datasets.py#L239-L251"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#updown.data.datasets.EvaluationDatasetWithConstraints.from_config" title="Permalink to this definition">¶</a></dt>

@@ -52,10 +52,83 @@
 <span id="updown-modules-cbs"></span><h1>updown.modules.cbs<a class="headerlink" href="#module-updown.modules.cbs" title="Permalink to this headline">¶</a></h1>
 <dl class="class">
 <dt id="updown.modules.cbs.ConstrainedBeamSearch">
-<em class="property">class </em><code class="sig-prename descclassname">updown.modules.cbs.</code><code class="sig-name descname">ConstrainedBeamSearch</code><span class="sig-paren">(</span><em class="sig-param">end_index: int</em>, <em class="sig-param">max_steps: int = 20</em>, <em class="sig-param">beam_size: int = 5</em>, <em class="sig-param">per_node_beam_size: Optional[int] = None</em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/nocaps-org/updown-baseline/blob/master/updown/modules/cbs.py#L19-L203"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#updown.modules.cbs.ConstrainedBeamSearch" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">updown.modules.cbs.</code><code class="sig-name descname">ConstrainedBeamSearch</code><span class="sig-paren">(</span><em class="sig-param">end_index: int</em>, <em class="sig-param">max_steps: int = 20</em>, <em class="sig-param">beam_size: int = 5</em>, <em class="sig-param">per_node_beam_size: Optional[int] = None</em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/nocaps-org/updown-baseline/blob/master/updown/modules/cbs.py#L20-L277"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#updown.modules.cbs.ConstrainedBeamSearch" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
 <p>Implements Constrained Beam Search for decoding the most likely sequences conditioned on a
 Finite State Machine with specified state transitions.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>We keep the method signatures as close to <code class="xref py py-class docutils literal notranslate"><span class="pre">BeamSearch</span></code>
+as possible. Most of the docstring is adapted from AllenNLP, so thanks to them!</p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>end_index</strong><span class="classifier">int</span></dt><dd><p>The index of the <code class="docutils literal notranslate"><span class="pre">&#64;&#64;BOUNDARY&#64;&#64;</span></code> token in the target vocabulary.</p>
+</dd>
+<dt><strong>max_steps</strong><span class="classifier">int, optional (default = 20)</span></dt><dd><p>The maximum number of decoding steps to take, i.e. the maximum length of the predicted
+sequences.</p>
+</dd>
+<dt><strong>beam_size</strong><span class="classifier">int, optional (default = 10)</span></dt><dd><p>The width of the beam used for each “main state” in the Finite State Machine.</p>
+</dd>
+<dt><strong>per_node_beam_size</strong><span class="classifier">int, optional (default = beam_size)</span></dt><dd><p>The maximum number of candidates to consider per node, at each step in the search.
+If not given, this just defaults to <code class="docutils literal notranslate"><span class="pre">beam_size</span></code>. Setting this parameter
+to a number smaller than <code class="docutils literal notranslate"><span class="pre">beam_size</span></code> may give better results, as it can introduce
+more diversity into the search. See <a class="reference external" href="https://arxiv.org/abs/1702.01806">Beam Search Strategies for Neural Machine Translation.
+Freitag and Al-Onaizan, 2017</a>.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<dl class="method">
+<dt id="updown.modules.cbs.ConstrainedBeamSearch.search">
+<code class="sig-name descname">search</code><span class="sig-paren">(</span><em class="sig-param">self, start_predictions:torch.Tensor, start_state:Dict[str, torch.Tensor], step:Callable[[torch.Tensor, Dict[str, torch.Tensor]], Tuple[torch.Tensor, Dict[str, torch.Tensor]]], fsm:torch.Tensor</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, torch.Tensor]<a class="reference external" href="https://github.com/nocaps-org/updown-baseline/blob/master/updown/modules/cbs.py#L59-L277"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#updown.modules.cbs.ConstrainedBeamSearch.search" title="Permalink to this definition">¶</a></dt>
+<dd><p>Given a starting state, a step function, and an FSM adjacency matrix, apply Constrained
+Beam Search to find most likely target sequences satisfying specified constraints in FSM.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>If your step function returns <code class="docutils literal notranslate"><span class="pre">-inf</span></code> for some log probabilities
+(like if you’re using a masked log-softmax) then some of the “best”
+sequences returned may also have <code class="docutils literal notranslate"><span class="pre">-inf</span></code> log probability. Specifically
+this happens when the beam size is smaller than the number of actions
+with finite log probability (non-zero probability) returned by the step function.
+Therefore if you’re using a mask you may want to check the results from <code class="docutils literal notranslate"><span class="pre">search</span></code>
+and potentially discard sequences with non-finite log probability.</p>
+</div>
+<dl class="field-list">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl>
+<dt><strong>start_predictions</strong><span class="classifier">torch.Tensor</span></dt><dd><p>A tensor containing the initial predictions with shape <code class="docutils literal notranslate"><span class="pre">(batch_size,</span> <span class="pre">)</span></code>. These are
+usually just <code class="docutils literal notranslate"><span class="pre">&#64;&#64;BOUNDARY&#64;&#64;</span></code> token indices.</p>
+</dd>
+<dt><strong>start_state</strong><span class="classifier"><code class="docutils literal notranslate"><span class="pre">Dict[str,</span> <span class="pre">torch.Tensor]</span></code></span></dt><dd><p>The initial state passed to the <code class="docutils literal notranslate"><span class="pre">step</span></code> function. Each value of the state dict
+should be a tensor of shape <code class="docutils literal notranslate"><span class="pre">(batch_size,</span> <span class="pre">*)</span></code>, where <code class="docutils literal notranslate"><span class="pre">*</span></code> means any other
+number of dimensions.</p>
+</dd>
+<dt><strong>step</strong><span class="classifier"><code class="docutils literal notranslate"><span class="pre">StepFunctionType</span></code></span></dt><dd><p>A function that is responsible for computing the next most likely tokens, given the
+current state and the predictions from the last time step. The function should accept
+two arguments. The first being a tensor of shape <code class="docutils literal notranslate"><span class="pre">(group_size,)</span></code>, representing the
+index of the predicted tokens from the last time step, and the second being the
+current state. The <code class="docutils literal notranslate"><span class="pre">group_size</span></code> will be <code class="docutils literal notranslate"><span class="pre">batch_size</span> <span class="pre">*</span> <span class="pre">beam_size</span> <span class="pre">*</span> <span class="pre">num_fsm_states</span></code>
+except in the initial step, for which it will just be <code class="docutils literal notranslate"><span class="pre">batch_size</span></code>. The function is
+expected to return a tuple, where the first element is a tensor of shape
+<code class="docutils literal notranslate"><span class="pre">(group_size,</span> <span class="pre">vocab_size)</span></code> containing the log probabilities of the tokens for the
+next step, and the second element is the updated state. The tensor in the state should
+have shape <code class="docutils literal notranslate"><span class="pre">(group_size,</span> <span class="pre">*)</span></code>, where <code class="docutils literal notranslate"><span class="pre">*</span></code> means any other number of dimensions.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt>Tuple[torch.Tensor, torch.Tensor]</dt><dd><p>Tuple of <code class="docutils literal notranslate"><span class="pre">(predictions,</span> <span class="pre">log_probabilities)</span></code>, where <code class="docutils literal notranslate"><span class="pre">predictions</span></code>
+has shape <code class="docutils literal notranslate"><span class="pre">(batch_size,</span> <span class="pre">num_fsm_states,</span> <span class="pre">beam_size,</span> <span class="pre">max_steps)</span></code>
+and <code class="docutils literal notranslate"><span class="pre">log_probabilities</span></code> has shape <code class="docutils literal notranslate"><span class="pre">(batch_size,</span> <span class="pre">num_fsm_states,</span> <span class="pre">beam_size)</span></code>.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
 </dd></dl>
 
 </div>

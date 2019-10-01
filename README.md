@@ -45,7 +45,7 @@ Use it as an API reference to navigate through and build on top of our code.
 Results
 -------
 
-Pre-trained checkpoints with the provided congis in (`configs` directory) are available to download:
+Pre-trained checkpoints with the provided configs in (`configs` directory) are available to download:
 
 ### UpDown Captioner (no CBS):
 
@@ -84,7 +84,7 @@ dimensional word embeddings which are learned during training.
 - Checkpoint (`.pth` file): [updown_plus_cbs.pth](https://www.dropbox.com/s/dajlwdn22betk4a/updown_plus_cbs.pth)
 
 **Note:** Since CBS is inference-only technique, this particular checkpoint can be used
-without CBS decoding. It yields simila results to the UpDown Captioner trained using
+without CBS decoding. It yields similar results to the UpDown Captioner trained using
 learned word embeddings during training.
 
 #### With CBS Decoding:

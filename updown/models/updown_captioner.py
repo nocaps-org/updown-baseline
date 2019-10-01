@@ -92,25 +92,27 @@ class UpDownCaptioner(nn.Module):
                 glove_vectors, freeze=True, padding_idx=self._pad_index
             )
         else:
-            assert not use_cbs, "CBS is not supported without Frozen GloVe embeddings (300d), "
-            f"found embedding size to be {self.embedding_size}."
-
             self._embedding_layer = nn.Embedding(
                 _vocab_size, embedding_size, padding_idx=self._pad_index
             )
+            assert not use_cbs, "CBS is not supported without Frozen GloVe embeddings (300d), "
+            f"found embedding size to be {self.embedding_size}."
 
         self._updown_cell = UpDownCell(
             image_feature_size, embedding_size, hidden_size, attention_projection_size
         )
 
         if self.embedding_size == 300:
-            self._output_projection = nn.Linear(hidden_size, self.embedding_size)
-            self._output_layer = nn.Linear(self.embedding_size, _vocab_size, bias=False)
-
             # Tie the input and output word embeddings when using frozen GloVe embeddings.
+            # In this case, project hidden states to GloVe dimension (with a non-linearity).
+            self._output_projection = nn.Sequential(
+                nn.Linear(hidden_size, self.embedding_size), nn.Tanh()
+            )
+            self._output_layer = nn.Linear(self.embedding_size, _vocab_size, bias=False)
             self._output_layer.weight = self._embedding_layer.weight
         else:
             # Else don't tie them when learning embeddings during training.
+            # In this case, project hidden states directly to output vocab space.
             self._output_projection = nn.Identity()  # type: ignore
             self._output_layer = nn.Linear(hidden_size, _vocab_size)
 
@@ -335,7 +337,7 @@ class UpDownCaptioner(nn.Module):
         updown_output, states = self._updown_cell(image_features, token_embeddings, states)
 
         # shape: (batch_size * net_beam_size, vocab_size)
-        updown_output = torch.tanh(self._output_projection(updown_output))
+        updown_output = self._output_projection(updown_output)
         output_logits = self._output_layer(updown_output)
 
         # Return logits while training, to further calculate cross entropy loss.

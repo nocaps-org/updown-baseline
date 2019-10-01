@@ -36,6 +36,17 @@ As well as the paper that proposed this model:
     }
 
 
+User Guide
+==========
+
+.. toctree::
+    :maxdepth: 1
+
+    setup_dependencies
+    training
+    evaluation_inference
+
+
 API Reference
 =============
 

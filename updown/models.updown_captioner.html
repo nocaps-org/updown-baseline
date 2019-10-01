@@ -81,7 +81,7 @@ be truncated to maximum length.</p>
 </dd>
 <dt><strong>beam_size: int, optional (default = 1)</strong></dt><dd><p>Beam size for finding the most likely caption during decoding time (evaluation).</p>
 </dd>
-<dt><strong>use_cbs: bool, optional (default = False)</strong></dt><dd><p>Whether to use <code class="xref py py-class docutils literal notranslate"><span class="pre">ConstrainedBeamSearch</span></code> for decoding.</p>
+<dt><strong>use_cbs: bool, optional (default = False)</strong></dt><dd><p>Whether to use <a class="reference internal" href="modules.cbs.html#updown.modules.cbs.ConstrainedBeamSearch" title="updown.modules.cbs.ConstrainedBeamSearch"><code class="xref py py-class docutils literal notranslate"><span class="pre">ConstrainedBeamSearch</span></code></a> for decoding.</p>
 </dd>
 <dt><strong>min_constraints_to_satisfy: int, optional (default = 2)</strong></dt><dd><p>Minimum number of constraints to satisfy for CBS, used for selecting the best beam. This
 will be ignored when <code class="docutils literal notranslate"><span class="pre">use_cbs</span></code> is False.</p>
@@ -167,7 +167,7 @@ called by the beam search class.</p>
 previous time-step – one for each beam, for each instances in a batch.
 <code class="docutils literal notranslate"><span class="pre">net_beam_size</span></code> is 1 during teacher forcing (training), <code class="docutils literal notranslate"><span class="pre">beam_size</span></code> for regular
 <code class="xref py py-class docutils literal notranslate"><span class="pre">allennlp.nn.beam_search.BeamSearch</span></code> and <code class="docutils literal notranslate"><span class="pre">beam_size</span> <span class="pre">*</span> <span class="pre">num_states</span></code> for
-<code class="xref py py-class docutils literal notranslate"><span class="pre">updown.modules.cbs.ConstrainedBeamSearch</span></code></p>
+<a class="reference internal" href="modules.cbs.html#updown.modules.cbs.ConstrainedBeamSearch" title="updown.modules.cbs.ConstrainedBeamSearch"><code class="xref py py-class docutils literal notranslate"><span class="pre">updown.modules.cbs.ConstrainedBeamSearch</span></code></a></p>
 </dd>
 <dt><strong>states: [Dict[str, torch.Tensor], optional (default = None)</strong></dt><dd><p>LSTM states of the <a class="reference internal" href="modules.updown_cell.html#updown.modules.updown_cell.UpDownCell" title="updown.modules.updown_cell.UpDownCell"><code class="xref py py-class docutils literal notranslate"><span class="pre">UpDownCell</span></code></a>. These are
 initialized as zero tensors if not provided (at first time-step).</p>

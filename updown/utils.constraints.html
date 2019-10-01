@@ -50,9 +50,11 @@
             
   <div class="section" id="module-updown.utils.constraints">
 <span id="updown-utils-constraints"></span><h1>updown.utils.constraints<a class="headerlink" href="#module-updown.utils.constraints" title="Permalink to this headline">¶</a></h1>
+<p>A collection of helper methods and classes for preparing constraints and finite state machine
+for performing Constrained Beam Search.</p>
 <dl class="function">
 <dt id="updown.utils.constraints.add_constraint_words_to_vocabulary">
-<code class="sig-prename descclassname">updown.utils.constraints.</code><code class="sig-name descname">add_constraint_words_to_vocabulary</code><span class="sig-paren">(</span><em class="sig-param">vocabulary:allennlp.data.vocabulary.Vocabulary</em>, <em class="sig-param">wordforms_tsvpath:str</em>, <em class="sig-param">namespace:str='tokens'</em><span class="sig-paren">)</span> &#x2192; allennlp.data.vocabulary.Vocabulary<a class="reference external" href="https://github.com/nocaps-org/updown-baseline/blob/master/updown/utils/constraints.py#L13-L47"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#updown.utils.constraints.add_constraint_words_to_vocabulary" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">updown.utils.constraints.</code><code class="sig-name descname">add_constraint_words_to_vocabulary</code><span class="sig-paren">(</span><em class="sig-param">vocabulary:allennlp.data.vocabulary.Vocabulary</em>, <em class="sig-param">wordforms_tsvpath:str</em>, <em class="sig-param">namespace:str='tokens'</em><span class="sig-paren">)</span> &#x2192; allennlp.data.vocabulary.Vocabulary<a class="reference external" href="https://github.com/nocaps-org/updown-baseline/blob/master/updown/utils/constraints.py#L17-L51"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#updown.utils.constraints.add_constraint_words_to_vocabulary" title="Permalink to this definition">¶</a></dt>
 <dd><p>Expand the <code class="xref py py-class docutils literal notranslate"><span class="pre">Vocabulary</span></code> with CBS constraint words. We do not
 need to worry about duplicate words in constraints and caption vocabulary. AllenNLP avoids
 duplicates automatically.</p>
@@ -76,6 +78,196 @@ of the word etc.) which could be CBS constraints.</p>
 </dl>
 </dd>
 </dl>
+</dd></dl>
+
+<dl class="class">
+<dt id="updown.utils.constraints.ConstraintFilter">
+<em class="property">class </em><code class="sig-prename descclassname">updown.utils.constraints.</code><code class="sig-name descname">ConstraintFilter</code><span class="sig-paren">(</span><em class="sig-param">hierarchy_jsonpath: str</em>, <em class="sig-param">nms_threshold: float = 0.85</em>, <em class="sig-param">max_given_constraints: int = 3</em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/nocaps-org/updown-baseline/blob/master/updown/utils/constraints.py#L54-L205"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#updown.utils.constraints.ConstraintFilter" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>A helper class to perform constraint filtering for providing sensible set of constraint words
+while decoding.</p>
+<p>The original work proposing <a class="reference external" href="https://arxiv.org/abs/1612.00576">Constrained Beam Search</a>
+selects constraints randomly.</p>
+<p>We remove certain categories from a fixed set of “blacklisted” categories, which are either
+too rare, not commonly uttered by humans, or well covered in COCO. We resolve overlapping
+detections (IoU &gt;= 0.85) by removing the higher-order of the two objects (e.g. , a “dog” would
+suppress a ‘mammal’) based on the Open Images class hierarchy (keeping both if equal).
+Finally, we take the top-k objects based on detection confidence as constraints.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>hierarchy_jsonpath: str</strong></dt><dd><p>Path to a JSON file containing a hierarchy of Open Images object classes.</p>
+</dd>
+<dt><strong>nms_threshold: float, optional (default = 0.85)</strong></dt><dd><p>NMS threshold for suppressing generic object class names during constraint filtering,
+for two boxes with IoU higher than this threshold, “dog” suppresses “animal”.</p>
+</dd>
+<dt><strong>max_given_constraints: int, optional (default = 3)</strong></dt><dd><p>Maximum number of constraints which can be specified for CBS decoding. Constraints are
+selected based on the prediction confidence score of their corresponding bounding boxes.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="class">
+<dt id="updown.utils.constraints.FiniteStateMachineBuilder">
+<em class="property">class </em><code class="sig-prename descclassname">updown.utils.constraints.</code><code class="sig-name descname">FiniteStateMachineBuilder</code><span class="sig-paren">(</span><em class="sig-param">vocabulary: allennlp.data.vocabulary.Vocabulary</em>, <em class="sig-param">wordforms_tsvpath: str</em>, <em class="sig-param">max_given_constraints: int = 3</em>, <em class="sig-param">max_words_per_constraint: int = 3</em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/nocaps-org/updown-baseline/blob/master/updown/utils/constraints.py#L208-L429"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#updown.utils.constraints.FiniteStateMachineBuilder" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>A helper class to build a Finite State Machine for Constrained Beam Search, as per the
+state transitions shown in Figures 7 through 9 from our
+<a class="reference external" href="https://arxiv.org/abs/1812.08658">paper appendix</a>.</p>
+<p>The FSM is constructed on a per-example basis, and supports up to three constraints,
+with each constraint being an Open Image class having up to three words (for example
+<code class="docutils literal notranslate"><span class="pre">salt</span> <span class="pre">and</span> <span class="pre">pepper</span></code>). Each word in the constraint may have several word-forms (for
+example <code class="docutils literal notranslate"><span class="pre">dog</span></code>, <code class="docutils literal notranslate"><span class="pre">dogs</span></code>).</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Providing more than three constraints may work but it is not tested.</p>
+</div>
+<p><strong>Details on Finite State Machine Representation</strong></p>
+<img alt="../_images/fsm.jpg" src="../_images/fsm.jpg" />
+<p>The FSM is representated as an adjacency matrix. Specifically, it is a tensor of shape
+<code class="docutils literal notranslate"><span class="pre">(num_total_states,</span> <span class="pre">num_total_states,</span> <span class="pre">vocab_size)</span></code>. In this, <code class="docutils literal notranslate"><span class="pre">fsm[S1,</span> <span class="pre">S2,</span> <span class="pre">W]</span> <span class="pre">=</span> <span class="pre">1</span></code> indicates
+a transition from “S1” to “S2” if word “W” is decoded. For example, consider <strong>Figure 9</strong>.
+The decoding is at initial state (<code class="docutils literal notranslate"><span class="pre">q0</span></code>), constraint word is <code class="docutils literal notranslate"><span class="pre">D1</span></code>, while any other word
+in the vocabulary is <code class="docutils literal notranslate"><span class="pre">Dx</span></code>. Then we have:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">fsm</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">D1</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">fsm</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">D1</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>    <span class="c1"># arrow from q0 to q1</span>
+<span class="n">fsm</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">Dx</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span> <span class="ow">and</span> <span class="n">fsm</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">Dx</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>    <span class="c1"># self-loop on q0</span>
+</pre></div>
+</div>
+<p>Consider up to “k” (3) constraints and up to “w” (3) words per constraint. We define these
+terms (as members in the class).</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">_num_main_states</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">**</span> <span class="n">k</span> <span class="p">(</span><span class="mi">8</span><span class="p">)</span>
+<span class="n">_total_states</span> <span class="o">=</span> <span class="n">num_main_states</span> <span class="o">*</span> <span class="n">w</span> <span class="p">(</span><span class="mi">24</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>First eight states are considered as “main states”, and will always be a part of the FSM. For
+less than “k” constraints, some states will be unreachable, hence “useless”. These will be
+ignored automatically.</p>
+<p>For any multi-word constraint, we use extra “sub-states” after first <code class="docutils literal notranslate"><span class="pre">2</span> <span class="pre">**</span> <span class="pre">k</span></code> states. We
+make connections according to <strong>Figure 7-8</strong> for such constraints. We dynamically trim unused
+sub-states to save computation during decoding. That said, <code class="docutils literal notranslate"><span class="pre">num_total_states</span></code> dimension is
+at least 8.</p>
+<p>A state “q” satisfies number of constraints equal to the number of “1”s in the binary
+representation of that state. For example:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>state “q0” (000) satisfies 0 constraints.</p></li>
+<li><p>state “q1” (001) satisfies 1 constraint.</p></li>
+<li><p>state “q2” (010) satisfies 1 constraint.</p></li>
+<li><p>state “q3” (011) satisfies 2 constraints.</p></li>
+</ul>
+</div></blockquote>
+<p>and so on. Only main states fully satisfy constraints.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>vocabulary: allennlp.data.Vocabulary</strong></dt><dd><p>AllenNLP’s vocabulary containing token to index mapping for captions vocabulary.</p>
+</dd>
+<dt><strong>wordforms_tsvpath: str</strong></dt><dd><p>Path to a TSV file containing two fields: first is the name of Open Images object class
+and second field is a comma separated list of words (possibly singular and plural forms
+of the word etc.) which could be CBS constraints.</p>
+</dd>
+<dt><strong>max_given_constraints: int, optional (default = 3)</strong></dt><dd><p>Maximum number of constraints which could be given while cbs decoding. Up to three
+supported.</p>
+</dd>
+<dt><strong>max_words_per_constraint: int, optional (default = 3)</strong></dt><dd><p>Maximum number of words per constraint for multi-word constraints. Note that these are
+for multi-word object classes (for example: <code class="docutils literal notranslate"><span class="pre">fire</span> <span class="pre">hydrant</span></code>) and not for multiple
+“word-forms” of a word, like singular-plurals. Up to three supported.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<dl class="method">
+<dt id="updown.utils.constraints.FiniteStateMachineBuilder.build">
+<code class="sig-name descname">build</code><span class="sig-paren">(</span><em class="sig-param">self, constraints:List[str]</em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/nocaps-org/updown-baseline/blob/master/updown/utils/constraints.py#L300-L327"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#updown.utils.constraints.FiniteStateMachineBuilder.build" title="Permalink to this definition">¶</a></dt>
+<dd><p>Build a finite state machine given a list of constraints.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>constraints: List[str]</strong></dt><dd><p>A list of up to three (possibly) multi-word constraints, in our use-case these are
+Open Images object class names.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt>Tuple[torch.Tensor, int]</dt><dd><p>A finite state machine as an adjacency matrix, index of the next available unused
+sub-state. This is later used to trim the unused sub-states from FSM.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="updown.utils.constraints.FiniteStateMachineBuilder._add_nth_constraint">
+<code class="sig-name descname">_add_nth_constraint</code><span class="sig-paren">(</span><em class="sig-param">self</em>, <em class="sig-param">fsm:torch.Tensor</em>, <em class="sig-param">n:int</em>, <em class="sig-param">substate_idx:int</em>, <em class="sig-param">constraint:str</em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/nocaps-org/updown-baseline/blob/master/updown/utils/constraints.py#L329-L379"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#updown.utils.constraints.FiniteStateMachineBuilder._add_nth_constraint" title="Permalink to this definition">¶</a></dt>
+<dd><p>Given an (incomplete) FSM matrix with transitions for “(n - 1)” constraints added, add
+all transitions for the “n-th” constraint.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>fsm: torch.Tensor</strong></dt><dd><p>A tensor of shape <code class="docutils literal notranslate"><span class="pre">(num_total_states,</span> <span class="pre">num_total_states,</span> <span class="pre">vocab_size)</span></code> representing an
+FSM under construction.</p>
+</dd>
+<dt><strong>n: int</strong></dt><dd><p>The cardinality of constraint to be added. Goes as 1, 2, 3… (not zero-indexed).</p>
+</dd>
+<dt><strong>substate_idx: int</strong></dt><dd><p>An index which points to the next unused position for a sub-state. It starts with
+<code class="docutils literal notranslate"><span class="pre">(2</span> <span class="pre">**</span> <span class="pre">num_main_states)</span></code> and increases according to the number of multi-word
+constraints added so far. The calling method, <a class="reference internal" href="#updown.utils.constraints.FiniteStateMachineBuilder.build" title="updown.utils.constraints.FiniteStateMachineBuilder.build"><code class="xref py py-meth docutils literal notranslate"><span class="pre">build()</span></code></a> keeps track of this.</p>
+</dd>
+<dt><strong>constraint: str</strong></dt><dd><p>A (possibly) multi-word constraint, in our use-case it is an Open Images object class
+name.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt>Tuple[torch.Tensor, int]</dt><dd><p>FSM with added connections for the constraint and updated <code class="docutils literal notranslate"><span class="pre">substate_idx</span></code> pointing to
+the next unused sub-state.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="updown.utils.constraints.FiniteStateMachineBuilder._connect">
+<code class="sig-name descname">_connect</code><span class="sig-paren">(</span><em class="sig-param">self</em>, <em class="sig-param">fsm:torch.Tensor</em>, <em class="sig-param">from_state:int</em>, <em class="sig-param">to_state:int</em>, <em class="sig-param">word:str</em>, <em class="sig-param">reset_state:int=None</em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/nocaps-org/updown-baseline/blob/master/updown/utils/constraints.py#L381-L429"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#updown.utils.constraints.FiniteStateMachineBuilder._connect" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add a connection between two states for a particular word (and all its word-forms). This
+means removing self-loop from <code class="docutils literal notranslate"><span class="pre">from_state</span></code> for all word-forms of <code class="docutils literal notranslate"><span class="pre">word</span></code> and connecting
+them to <code class="docutils literal notranslate"><span class="pre">to_state</span></code>.</p>
+<p>In case of multi-word constraints, we return back to the <code class="docutils literal notranslate"><span class="pre">reset_state</span></code> for any utterance
+other than <code class="docutils literal notranslate"><span class="pre">word</span></code>, to satisfy a multi-word constraint if all words are decoded
+consecutively. For example: for “fire hydrant” as a constraint between Q0 and Q1, we reach
+a sub-state “Q8” on decoding “fire”. Go back to main state “Q1” on decoding “hydrant”
+immediately after, else we reset back to main state “Q0”.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>fsm: torch.Tensor</strong></dt><dd><p>A tensor of shape <code class="docutils literal notranslate"><span class="pre">(num_total_states,</span> <span class="pre">num_total_states,</span> <span class="pre">vocab_size)</span></code> representing an
+FSM under construction.</p>
+</dd>
+<dt><strong>from_state: int</strong></dt><dd><p>Origin state to make a state transition.</p>
+</dd>
+<dt><strong>to_state: int</strong></dt><dd><p>Destination state to make a state transition.</p>
+</dd>
+<dt><strong>word: str</strong></dt><dd><p>The word which serves as a constraint for transition between given two states.</p>
+</dd>
+<dt><strong>reset_state: int, optional (default = None)</strong></dt><dd><p>State to reset otherwise. This is only valid if <code class="docutils literal notranslate"><span class="pre">from_state</span></code> is a sub-state.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt>torch.Tensor</dt><dd><p>FSM with the added connection.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
 </dd></dl>
 
 </div>

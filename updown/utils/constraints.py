@@ -1,3 +1,7 @@
+r"""
+A collection of helper methods and classes for preparing constraints and finite state machine
+for performing Constrained Beam Search.
+"""
 import csv
 import json
 from typing import Dict, List, Optional
@@ -48,6 +52,32 @@ def add_constraint_words_to_vocabulary(
 
 
 class ConstraintFilter(object):
+    r"""
+    A helper class to perform constraint filtering for providing sensible set of constraint words
+    while decoding.
+
+    Extended Summary
+    ----------------
+    The original work proposing `Constrained Beam Search <https://arxiv.org/abs/1612.00576>`_
+    selects constraints randomly.
+
+    We remove certain categories from a fixed set of "blacklisted" categories, which are either
+    too rare, not commonly uttered by humans, or well covered in COCO. We resolve overlapping
+    detections (IoU >= 0.85) by removing the higher-order of the two objects (e.g. , a "dog" would
+    suppress a ‘mammal’) based on the Open Images class hierarchy (keeping both if equal).
+    Finally, we take the top-k objects based on detection confidence as constraints.
+
+    Parameters
+    ----------
+    hierarchy_jsonpath: str
+        Path to a JSON file containing a hierarchy of Open Images object classes.
+    nms_threshold: float, optional (default = 0.85)
+        NMS threshold for suppressing generic object class names during constraint filtering,
+        for two boxes with IoU higher than this threshold, "dog" suppresses "animal".
+    max_given_constraints: int, optional (default = 3)
+        Maximum number of constraints which can be specified for CBS decoding. Constraints are
+        selected based on the prediction confidence score of their corresponding bounding boxes.
+    """
 
     # fmt: off
     BLACKLIST: List[str] = [
@@ -70,7 +100,9 @@ class ConstraintFilter(object):
         "luggage and bags": "luggage",
     }
 
-    def __init__(self, hierarchy_jsonpath: str, nms_threshold: float = 0.85, max_given_constraints: int = 3):
+    def __init__(
+        self, hierarchy_jsonpath: str, nms_threshold: float = 0.85, max_given_constraints: int = 3
+    ):
         def __read_hierarchy(node: anytree.AnyNode, parent: Optional[anytree.AnyNode] = None):
             # Cast an ``anytree.AnyNode`` (after first level of recursion) to dict.
             attributes = dict(node)
@@ -119,11 +151,6 @@ class ConstraintFilter(object):
         return class_names
 
     def _nms(self, boxes: np.ndarray, class_names: List[str]):
-        r"""
-        Perform non-maximum suppression of overlapping boxes, where the score is based on "height"
-        of class in the hierarchy.
-        """
-
         if len(class_names) == 0:
             return []
 
@@ -179,8 +206,75 @@ class ConstraintFilter(object):
 
 
 class FiniteStateMachineBuilder(object):
+    r"""
+    A helper class to build a Finite State Machine for Constrained Beam Search, as per the
+    state transitions shown in Figures 7 through 9 from our
+    `paper appendix <https://arxiv.org/abs/1812.08658>`_.
 
-    # Supports up to three constraints, of up to three words each.
+    The FSM is constructed on a per-example basis, and supports up to three constraints,
+    with each constraint being an Open Image class having up to three words (for example
+    ``salt and pepper``). Each word in the constraint may have several word-forms (for
+    example ``dog``, ``dogs``).
+
+    .. note:: Providing more than three constraints may work but it is not tested.
+
+    **Details on Finite State Machine Representation**
+
+    .. image:: ../_static/fsm.jpg
+
+    The FSM is representated as an adjacency matrix. Specifically, it is a tensor of shape
+    ``(num_total_states, num_total_states, vocab_size)``. In this, ``fsm[S1, S2, W] = 1`` indicates
+    a transition from "S1" to "S2" if word "W" is decoded. For example, consider **Figure 9**.
+    The decoding is at initial state (``q0``), constraint word is ``D1``, while any other word
+    in the vocabulary is ``Dx``. Then we have::
+
+        fsm[0, 0, D1] = 0 and fsm[0, 1, D1] = 1    # arrow from q0 to q1
+        fsm[0, 0, Dx] = 1 and fsm[0, 1, Dx] = 0    # self-loop on q0
+
+    Consider up to "k" (3) constraints and up to "w" (3) words per constraint. We define these
+    terms (as members in the class).
+
+    .. code-block::
+
+        _num_main_states = 2 ** k (8)
+        _total_states = num_main_states * w (24)
+
+    First eight states are considered as "main states", and will always be a part of the FSM. For
+    less than "k" constraints, some states will be unreachable, hence "useless". These will be
+    ignored automatically.
+
+    For any multi-word constraint, we use extra "sub-states" after first ``2 ** k`` states. We
+    make connections according to **Figure 7-8** for such constraints. We dynamically trim unused
+    sub-states to save computation during decoding. That said, ``num_total_states`` dimension is
+    at least 8.
+
+    A state "q" satisfies number of constraints equal to the number of "1"s in the binary
+    representation of that state. For example:
+
+      - state "q0" (000) satisfies 0 constraints.
+      - state "q1" (001) satisfies 1 constraint.
+      - state "q2" (010) satisfies 1 constraint.
+      - state "q3" (011) satisfies 2 constraints.
+
+    and so on. Only main states fully satisfy constraints.
+
+    Parameters
+    ----------
+    vocabulary: allennlp.data.Vocabulary
+        AllenNLP’s vocabulary containing token to index mapping for captions vocabulary.
+    wordforms_tsvpath: str
+        Path to a TSV file containing two fields: first is the name of Open Images object class
+        and second field is a comma separated list of words (possibly singular and plural forms
+        of the word etc.) which could be CBS constraints.
+    max_given_constraints: int, optional (default = 3)
+        Maximum number of constraints which could be given while cbs decoding. Up to three
+        supported.
+    max_words_per_constraint: int, optional (default = 3)
+        Maximum number of words per constraint for multi-word constraints. Note that these are
+        for multi-word object classes (for example: ``fire hydrant``) and not for multiple
+        "word-forms" of a word, like singular-plurals. Up to three supported.
+    """
+
     def __init__(
         self,
         vocabulary: Vocabulary,
@@ -193,7 +287,7 @@ class FiniteStateMachineBuilder(object):
         self._max_words_per_constraint = max_words_per_constraint
 
         self._num_main_states = 2 ** max_given_constraints
-        self._total_states = self._num_main_states * max_words_per_constraint
+        self._num_total_states = self._num_main_states * max_words_per_constraint
 
         self._wordforms: Dict[str, List[str]] = {}
         with open(wordforms_tsvpath, "r") as wordforms_file:
@@ -203,67 +297,23 @@ class FiniteStateMachineBuilder(object):
             for row in reader:
                 self._wordforms[row["class_name"]] = row["words"].split(",")
 
-    @staticmethod
-    def _connect(
-        fsm: torch.Tensor,
-        from_state: int,
-        to_state: int,
-        word_indices: List[int],
-        reset_state: int = None,
-    ):
-        for word_index in word_indices:
-            fsm[from_state, to_state, word_index] = 1
-            fsm[from_state, from_state, word_index] = 0
+    def build(self, constraints: List[str]):
+        r"""
+        Build a finite state machine given a list of constraints.
 
-        if reset_state is not None:
-            fsm[from_state, from_state, :] = 0
-            fsm[from_state, reset_state, :] = 1
-            for word_index in word_indices:
-                fsm[from_state, reset_state, word_index] = 0
+        Parameters
+        ----------
+        constraints: List[str]
+            A list of up to three (possibly) multi-word constraints, in our use-case these are
+            Open Images object class names.
 
-        return fsm
-
-    def add_nth_constraint(self, fsm, n, substate_idx: int, candidate: str):
-        # n starts as 1, 2, 3...
-
-        # Consider single word for now.
-        words = candidate.split()
-        connection_stride = 2 ** (n - 1)
-
-        from_state = 0
-        while from_state < self._num_main_states:
-            for _ in range(connection_stride):
-
-                word_from_state = from_state
-                for i, word in enumerate(words):
-                    wordforms = self._wordforms[word]
-                    wordform_indices = [self._vocabulary.get_token_index(w) for w in wordforms]
-
-                    if i != len(words) - 1:
-                        fsm = self._connect(
-                            fsm,
-                            word_from_state,
-                            substate_idx,
-                            wordform_indices,
-                            reset_state=from_state,
-                        )
-                        word_from_state = substate_idx
-                        substate_idx += 1
-                    else:
-                        fsm = self._connect(
-                            fsm,
-                            word_from_state,
-                            from_state + connection_stride,
-                            wordform_indices,
-                            reset_state=from_state,
-                        )
-                from_state += 1
-            from_state += connection_stride
-
-        return fsm, substate_idx
-
-    def build(self, candidates: List[str]):
-        fsm = torch.zeros(self._total_states, self._total_states, dtype=torch.uint8)
+        Returns
+        -------
+        Tuple[torch.Tensor, int]
+            A finite state machine as an adjacency matrix, index of the next available unused
+            sub-state. This is later used to trim the unused sub-states from FSM.
+        """
+        fsm = torch.zeros(self._num_total_states, self._num_total_states, dtype=torch.uint8)
 
         # Self loops for all words on main states.
         fsm[range(self._num_main_states), range(self._num_main_states)] = 1
@@ -271,7 +321,109 @@ class FiniteStateMachineBuilder(object):
         fsm = fsm.unsqueeze(-1).repeat(1, 1, self._vocabulary.get_vocab_size())
 
         substate_idx = self._num_main_states
-        for i, candidate in enumerate(candidates):
-            fsm, substate_idx = self.add_nth_constraint(fsm, i + 1, substate_idx, candidate)
+        for i, constraint in enumerate(constraints):
+            fsm, substate_idx = self._add_nth_constraint(fsm, i + 1, substate_idx, constraint)
 
         return fsm, substate_idx
+
+    def _add_nth_constraint(self, fsm: torch.Tensor, n: int, substate_idx: int, constraint: str):
+        r"""
+        Given an (incomplete) FSM matrix with transitions for "(n - 1)" constraints added, add
+        all transitions for the "n-th" constraint.
+
+        Parameters
+        ----------
+        fsm: torch.Tensor
+            A tensor of shape ``(num_total_states, num_total_states, vocab_size)`` representing an
+            FSM under construction.
+        n: int
+            The cardinality of constraint to be added. Goes as 1, 2, 3... (not zero-indexed).
+        substate_idx: int
+            An index which points to the next unused position for a sub-state. It starts with
+            ``(2 ** num_main_states)`` and increases according to the number of multi-word
+            constraints added so far. The calling method, :meth:`build` keeps track of this.
+        constraint: str
+            A (possibly) multi-word constraint, in our use-case it is an Open Images object class
+            name.
+
+        Returns
+        -------
+        Tuple[torch.Tensor, int]
+            FSM with added connections for the constraint and updated ``substate_idx`` pointing to
+            the next unused sub-state.
+        """
+        words = constraint.split()
+        connection_stride = 2 ** (n - 1)
+
+        from_state = 0
+        while from_state < self._num_main_states:
+            for _ in range(connection_stride):
+                word_from_state = from_state
+                for i, word in enumerate(words):
+                    # fmt: off
+                    # Connect to a sub-state for all words in multi-word constraint except last.
+                    if i != len(words) - 1:
+                        fsm = self._connect(
+                            fsm, word_from_state, substate_idx, word, reset_state=from_state
+                        )
+                        word_from_state = substate_idx
+                        substate_idx += 1
+                    else:
+                        fsm = self._connect(
+                            fsm, word_from_state, from_state + connection_stride, word,
+                            reset_state=from_state,
+                        )
+                    # fmt: on
+                from_state += 1
+            from_state += connection_stride
+        return fsm, substate_idx
+
+    def _connect(
+        self, fsm: torch.Tensor, from_state: int, to_state: int, word: str, reset_state: int = None
+    ):
+        r"""
+        Add a connection between two states for a particular word (and all its word-forms). This
+        means removing self-loop from ``from_state`` for all word-forms of ``word`` and connecting
+        them to ``to_state``.
+        
+        Extended Summary
+        ----------------
+        In case of multi-word constraints, we return back to the ``reset_state`` for any utterance
+        other than ``word``, to satisfy a multi-word constraint if all words are decoded
+        consecutively. For example: for "fire hydrant" as a constraint between Q0 and Q1, we reach
+        a sub-state "Q8" on decoding "fire". Go back to main state "Q1" on decoding "hydrant"
+        immediately after, else we reset back to main state "Q0".
+
+        Parameters
+        ----------
+        fsm: torch.Tensor
+            A tensor of shape ``(num_total_states, num_total_states, vocab_size)`` representing an
+            FSM under construction.
+        from_state: int
+            Origin state to make a state transition.
+        to_state: int
+            Destination state to make a state transition.
+        word: str
+            The word which serves as a constraint for transition between given two states.
+        reset_state: int, optional (default = None)
+           State to reset otherwise. This is only valid if ``from_state`` is a sub-state.
+
+        Returns
+        -------
+        torch.Tensor
+            FSM with the added connection.
+        """
+        wordforms = self._wordforms[word]
+        wordform_indices = [self._vocabulary.get_token_index(w) for w in wordforms]
+
+        for wordform_index in wordform_indices:
+            fsm[from_state, to_state, wordform_index] = 1
+            fsm[from_state, from_state, wordform_index] = 0
+
+        if reset_state is not None:
+            fsm[from_state, from_state, :] = 0
+            fsm[from_state, reset_state, :] = 1
+            for wordform_index in wordform_indices:
+                fsm[from_state, reset_state, wordform_index] = 0
+
+        return fsm

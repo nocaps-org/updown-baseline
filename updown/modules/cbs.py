@@ -17,6 +17,10 @@ def _enlarge_single_tensor(t, batch_size, num_states, beam_size):
 
 
 class ConstrainedBeamSearch(object):
+    r"""
+    Implements Constrained Beam Search for decoding the most likely sequences conditioned on a
+    Finite State Machine with specified state transitions.
+    """
     def __init__(
         self,
         end_index: int,

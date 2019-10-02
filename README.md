@@ -58,7 +58,6 @@ dimensional word embeddings which are learned during training.
 
 <table>
   <tr>
-    <th></th>
     <th colspan="2">in-domain</th>
     <th colspan="2">near-domain</th>
     <th colspan="2">out-of-domain</th>
@@ -93,7 +92,6 @@ learned word embeddings during training.
 
 <table>
   <tr>
-    <th></th>
     <th colspan="2">in-domain</th>
     <th colspan="2">near-domain</th>
     <th colspan="2">out-of-domain</th>
@@ -119,7 +117,6 @@ learned word embeddings during training.
 
 <table>
   <tr>
-    <th></th>
     <th colspan="2">in-domain</th>
     <th colspan="2">near-domain</th>
     <th colspan="2">out-of-domain</th>

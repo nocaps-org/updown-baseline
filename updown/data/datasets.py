@@ -65,7 +65,7 @@ class TrainingDataset(Dataset):
         vocabulary = kwargs.pop("vocabulary")
         return cls(
             vocabulary=vocabulary,
-            image_features_h5path=_C.DATA.INFER_FEATURES,
+            image_features_h5path=_C.DATA.TRAIN_FEATURES,
             captions_jsonpath=_C.DATA.TRAIN_CAPTIONS,
             max_caption_length=_C.DATA.MAX_CAPTION_LENGTH,
             in_memory=kwargs.pop("in_memory"),

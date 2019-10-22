@@ -82,7 +82,7 @@ features  --&gt; | BUTD Attention |  |
 </pre></div>
 </div>
 <p>If <a class="reference internal" href="models.updown_captioner.html#updown.models.updown_captioner.UpDownCaptioner" title="updown.models.updown_captioner.UpDownCaptioner"><code class="xref py py-class docutils literal notranslate"><span class="pre">UpDownCaptioner</span></code></a> is analogous to an
-<a class="reference external" href="https://pytorch.org/docs/stable/nn.html#torch.nn.LSTM" title="(in PyTorch vmaster (1.2.0a0+8554416 ))"><code class="xref py py-class docutils literal notranslate"><span class="pre">LSTM</span></code></a>, then this class would be analogous to <a class="reference external" href="https://pytorch.org/docs/stable/nn.html#torch.nn.LSTMCell" title="(in PyTorch vmaster (1.2.0a0+8554416 ))"><code class="xref py py-class docutils literal notranslate"><span class="pre">LSTMCell</span></code></a>.</p>
+<a class="reference external" href="https://pytorch.org/docs/stable/nn.html#torch.nn.LSTM" title="(in PyTorch vmaster (1.3.0a0+de394b6 ))"><code class="xref py py-class docutils literal notranslate"><span class="pre">LSTM</span></code></a>, then this class would be analogous to <a class="reference external" href="https://pytorch.org/docs/stable/nn.html#torch.nn.LSTMCell" title="(in PyTorch vmaster (1.3.0a0+de394b6 ))"><code class="xref py py-class docutils literal notranslate"><span class="pre">LSTMCell</span></code></a>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><dl class="simple">
@@ -103,7 +103,7 @@ attention weights.</p>
 <code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">self, image_features:torch.Tensor, token_embedding:torch.Tensor, states:Union[Dict[str, torch.Tensor], NoneType]=None</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, Dict[str, torch.Tensor]]<a class="reference external" href="https://github.com/nocaps-org/updown-baseline/blob/master/updown/modules/updown_cell.py#L85-L159"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#updown.modules.updown_cell.UpDownCell.forward" title="Permalink to this definition">¶</a></dt>
 <dd><p>Given image features, input token embeddings of current time-step and LSTM states,
 predict output token embeddings for next time-step and update states. This behaves
-very similar to <a class="reference external" href="https://pytorch.org/docs/stable/nn.html#torch.nn.LSTMCell" title="(in PyTorch vmaster (1.2.0a0+8554416 ))"><code class="xref py py-class docutils literal notranslate"><span class="pre">LSTMCell</span></code></a>.</p>
+very similar to <a class="reference external" href="https://pytorch.org/docs/stable/nn.html#torch.nn.LSTMCell" title="(in PyTorch vmaster (1.3.0a0+de394b6 ))"><code class="xref py py-class docutils literal notranslate"><span class="pre">LSTMCell</span></code></a>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><dl class="simple">

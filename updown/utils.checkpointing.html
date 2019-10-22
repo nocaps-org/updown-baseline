@@ -76,7 +76,7 @@ hits a lower value; in <cite>max</cite> mode it will be recorded when metric hit
 </dd>
 </dl>
 <p class="rubric">Notes</p>
-<p>For <a class="reference external" href="https://pytorch.org/docs/stable/nn.html#torch.nn.DataParallel" title="(in PyTorch vmaster (1.2.0a0+8554416 ))"><code class="xref py py-class docutils literal notranslate"><span class="pre">DataParallel</span></code></a> objects, <code class="docutils literal notranslate"><span class="pre">.module.state_dict()</span></code> is called instead of
+<p>For <a class="reference external" href="https://pytorch.org/docs/stable/nn.html#torch.nn.DataParallel" title="(in PyTorch vmaster (1.3.0a0+de394b6 ))"><code class="xref py py-class docutils literal notranslate"><span class="pre">DataParallel</span></code></a> objects, <code class="docutils literal notranslate"><span class="pre">.module.state_dict()</span></code> is called instead of
 <code class="docutils literal notranslate"><span class="pre">.state_dict()</span></code>.</p>
 <p class="rubric">Examples</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">model</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>

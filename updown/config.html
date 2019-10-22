@@ -50,22 +50,20 @@
             
   <div class="section" id="module-updown.config">
 <span id="updown-config"></span><h1>updown.config<a class="headerlink" href="#module-updown.config" title="Permalink to this headline">¶</a></h1>
-<p>This module provides package-wide configuration management.</p>
 <dl class="class">
 <dt id="updown.config.Config">
-<em class="property">class </em><code class="sig-prename descclassname">updown.config.</code><code class="sig-name descname">Config</code><span class="sig-paren">(</span><em class="sig-param">config_yaml: str</em>, <em class="sig-param">config_override: List[Any] = []</em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/nocaps-org/updown-baseline/blob/master/updown/config.py#L7-L248"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#updown.config.Config" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">updown.config.</code><code class="sig-name descname">Config</code><span class="sig-paren">(</span><em class="sig-param">config_file: Optional[str] = None</em>, <em class="sig-param">config_override: List[Any] = []</em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/nocaps-org/updown-baseline/blob/master/updown/config.py#L6-L221"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#updown.config.Config" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
-<p>A collection of all the required configuration parameters. This class is a nested dict-like
-structure, with nested keys accessible as attributes. It contains sensible default values for
-all the parameters, which may be overriden by (first) through a YAML file and (second) through
-a list of attributes and values.</p>
+<p>This class provides package-wide configuration management. It is a nested dict-like structure
+with nested keys accessible as attributes. It contains sensible default values, which can be
+modified by (first) a YAML file and (second) a list of attributes and values.</p>
 <p>This class definition contains default hyperparameters for the UpDown baseline from our paper.
 Modification of any parameter after instantiating this class is not possible, so you must
-override required parameter values in either through <code class="docutils literal notranslate"><span class="pre">config_yaml</span></code> or <code class="docutils literal notranslate"><span class="pre">config_override</span></code>.</p>
+override required parameter values in either through <code class="docutils literal notranslate"><span class="pre">config_file</span></code> or <code class="docutils literal notranslate"><span class="pre">config_override</span></code>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><dl class="simple">
-<dt><strong>config_yaml: str</strong></dt><dd><p>Path to a YAML file containing configuration parameters to override.</p>
+<dt><strong>config_file: str</strong></dt><dd><p>Path to a YAML file containing configuration parameters to override.</p>
 </dd>
 <dt><strong>config_override: List[Any], optional (default= [])</strong></dt><dd><p>A list of sequential attributes and values of parameters to override. This happens after
 overriding from YAML file.</p>
@@ -153,7 +151,7 @@ attention weights.</p>
 <dt><strong>MODEL.MIN_CONSTRAINTS_TO_SATISFY: 2</strong></dt><dd><p>Minimum number of constraints to satisfy during CBS decoding.</p>
 </dd>
 <dt><strong>__________</strong></dt><dd></dd>
-<dt><strong>OPTIM:</strong></dt><dd><p>Optimization hyper-parameters, relevant during training a particular phase.</p>
+<dt><strong>OPTIM:</strong></dt><dd><p>Optimization hyper-parameters, mostly relevant during training.</p>
 </dd>
 <dt><strong>OPTIM.BATCH_SIZE: 150</strong></dt><dd><p>Batch size during training and evaluation.</p>
 </dd>
@@ -172,7 +170,7 @@ attention weights.</p>
 </dl>
 <dl class="method">
 <dt id="updown.config.Config.dump">
-<code class="sig-name descname">dump</code><span class="sig-paren">(</span><em class="sig-param">self</em>, <em class="sig-param">file_path:str</em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/nocaps-org/updown-baseline/blob/master/updown/config.py#L206-L215"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#updown.config.Config.dump" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">dump</code><span class="sig-paren">(</span><em class="sig-param">self</em>, <em class="sig-param">file_path:str</em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/nocaps-org/updown-baseline/blob/master/updown/config.py#L185-L194"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#updown.config.Config.dump" title="Permalink to this definition">¶</a></dt>
 <dd><p>Save config at the specified file path.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -186,7 +184,7 @@ attention weights.</p>
 
 <dl class="method">
 <dt id="updown.config.Config._validate">
-<code class="sig-name descname">_validate</code><span class="sig-paren">(</span><em class="sig-param">self</em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/nocaps-org/updown-baseline/blob/master/updown/config.py#L217-L234"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#updown.config.Config._validate" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">_validate</code><span class="sig-paren">(</span><em class="sig-param">self</em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/nocaps-org/updown-baseline/blob/master/updown/config.py#L196-L207"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#updown.config.Config._validate" title="Permalink to this definition">¶</a></dt>
 <dd><p>Perform all validations to raise error if there are parameters with conflicting values.</p>
 </dd></dl>
 

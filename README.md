@@ -10,7 +10,7 @@ and with added support of decoding using [Constrained Beam Search][8].
 Citation
 --------
 
-If you find this code useful, please consider citing our paper, the paper which proposed original model, and [EvalAI][https://evalai.cloudcv.org] — the platform which hosts our evaluation server. All bibtex available in [CITATION.md](CITATION.md).
+If you find this code useful, please consider citing our paper, the paper which proposed original model, and [EvalAI](https://evalai.cloudcv.org) — the platform which hosts our evaluation server. All bibtex available in [CITATION.md](CITATION.md).
 
 Usage Instructions
 ------------------

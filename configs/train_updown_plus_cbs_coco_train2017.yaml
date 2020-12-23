@@ -1,0 +1,19 @@
+# -----------------------------------------------------------------------------
+# Train UpDown + CBS Captioner on COCO train2017, evaluate on nocaps val.
+# -----------------------------------------------------------------------------
+_BASE_: "train_updown_coco_train2017.yaml"
+
+DATA:
+  CBS:
+    INFER_BOXES: data/nocaps_val_oi_detector_boxes.json
+    CLASS_HIERARCHY: data/cbs/class_hierarchy.json
+    WORDFORMS: data/cbs/constraint_wordforms.tsv
+
+    MAX_GIVEN_CONSTRAINTS: 3
+    MAX_WORDS_PER_CONSTRAINT: 3
+    NMS_THRESHOLD: 0.85
+
+MODEL:
+  EMBEDDING_SIZE: 300
+  USE_CBS: True
+  MIN_CONSTRAINTS_TO_SATISFY: 2

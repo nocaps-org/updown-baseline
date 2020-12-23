@@ -15,7 +15,7 @@ reproduce results of the first row in ``nocaps val`` table from our paper.
 .. code-block::
 
     python scripts/train.py \
-        --config configs/updown_nocaps_val.yaml \
+        --config configs/train_updown_coco_train2017.yaml \
         --gpu-ids 0 --serialization-dir checkpoints/updown
     
 Refer :class:`updown.config.Config` for default hyperparameters.
@@ -25,7 +25,7 @@ For other configurations, write your own config file, and/or a set of key-value 
 .. code-block::
 
     python scripts/train.py \
-        --config configs/updown_nocaps_val.yaml \
+        --config configs/train_updown_coco_train2017.yaml \
         --config-override OPTIM.BATCH_SIZE 250 \
         --gpu-ids 0 --serialization-dir checkpoints/updown-baseline
 
@@ -38,13 +38,13 @@ For other configurations, write your own config file, and/or a set of key-value 
 UpDown Captioner (with CBS)
 ---------------------------
 
-Train a baseline UpDown Captioner with cnstrained Beam Search decoding during evaluation. This
+Train a baseline UpDown Captioner with Constrained Beam Search decoding during evaluation. This
 would reproduce results of the second row in ``nocaps val`` table from our paper.
 
 .. code-block::
 
     python scripts/train.py \
-        --config configs/updown_plus_cbs_nocaps_val.yaml \
+        --config configs/train_updown_plus_cbs_coco_train2017.yaml \
         --gpu-ids 0 --serialization-dir checkpoints/updown_plus_cbs
 
 

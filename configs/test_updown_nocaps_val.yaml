@@ -1,0 +1,5 @@
+# -----------------------------------------------------------------------------
+# Just a placeholder, nothing changes here because training config already
+# evaluates on nocaps val by default.
+# -----------------------------------------------------------------------------
+_BASE_: "train_updown_coco_train2017.yaml"

@@ -1,0 +1,8 @@
+# -----------------------------------------------------------------------------
+# Run inference with a trained UpDown captioner on nocaps test split.
+# -----------------------------------------------------------------------------
+_BASE_: "train_updown_coco_train2017.yaml"
+
+DATA:
+  INFER_FEATURES: data/nocaps_test_vg_detector_features_adaptive.h5
+  INFER_CAPTIONS: data/nocaps/nocaps_test_image_info.json

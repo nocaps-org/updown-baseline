@@ -6,7 +6,7 @@ h5py==2.8.0
 mypy_extensions==0.4.1
 nltk==3.4.3
 numpy==1.15.4
-pillow==6.2.0
+pillow==8.3.2
 tb-nightly
 tensorboardX==1.7   
 torch==1.1.0
